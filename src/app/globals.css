@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  /* Optima brand tokens (CLAUDE.md design pravac) */
+  --color-cream: #faf7f2;
+  --color-charcoal: #222222;
+  --color-terracotta: #b76e5c;
+  --color-beige: #e8e1d9;
+
+  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
