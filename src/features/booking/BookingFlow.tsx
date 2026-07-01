@@ -21,12 +21,10 @@ type Props = {
 type Screen = "picker" | "review" | "success";
 type SelectedSlot = { startUtcISO: string; label: string };
 // Dodela prati NAMERU mušterije, ne trenutni broj slobodnih:
-//  - 'specific': kliknula konkretno ime (direktno ili iz liste slobodnih)
-//  - 'any': pod "Bilo ko" bez izbora imena (jedan slobodan ili "svejedno mi je")
-type Assignment =
-  | { origin: "specific"; staffId: string; staffName: string }
-  | { origin: "any"; exampleName: string }
-  | null;
+//  - 'specific': kliknula konkretno ime radnika (korak 2)
+//  - 'any': izabrala "Bilo ko slobodan" — sistem NIKAD ne pita kod koga;
+//    server dodeljuje konkretnog radnika tek pri potvrdi.
+type Assignment = { origin: "specific"; staffId: string; staffName: string } | { origin: "any" } | null;
 
 function formatPrice(price: number) {
   return `${Number(price).toLocaleString("sr-RS")} din`;
@@ -59,9 +57,9 @@ export function BookingFlow({
   const [date, setDate] = useState<string>("");
 
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
-  const [selectedMerged, setSelectedMerged] = useState<MergedSlot | null>(null); // any: slobodni tada
   const [assignment, setAssignment] = useState<Assignment>(null);
   const [confirmedStaffName, setConfirmedStaffName] = useState<string | null>(null);
+  const [confirmedWasAny, setConfirmedWasAny] = useState(false);
 
   // Podaci mušterije
   const [fullName, setFullName] = useState("");
@@ -151,7 +149,6 @@ export function BookingFlow({
       setLoading(true);
       setError(null);
       setSelectedSlot(null);
-      setSelectedMerged(null);
       setAssignment(null);
       try {
         const res = await getAvailableSlotsAnyStaff(serviceId, date);
@@ -184,7 +181,6 @@ export function BookingFlow({
     setSlots([]);
     setAnySlots([]);
     setSelectedSlot(null);
-    setSelectedMerged(null);
     setAssignment(null);
     setLoaded(false);
     setTakenMsg(null);
@@ -212,7 +208,6 @@ export function BookingFlow({
   function onDateChange(value: string) {
     setDate(value);
     setSelectedSlot(null);
-    setSelectedMerged(null);
     setAssignment(null);
     setTakenMsg(null);
   }
@@ -227,24 +222,11 @@ export function BookingFlow({
     });
   }
 
-  // Izbor vremena — "bilo ko". Jedan slobodan => auto (origin='any'); više => bira.
+  // Izbor vremena — "bilo ko". Sistem NIKAD ne pita kod koga; dodela ide
+  // pri potvrdi, server-side.
   function pickAnyTime(m: MergedSlot) {
     setSelectedSlot({ startUtcISO: m.startUtcISO, label: m.label });
-    setSelectedMerged(m);
-    if (m.freeStaff.length === 1) {
-      setAssignment({ origin: "any", exampleName: m.freeStaff[0].ime });
-    } else {
-      setAssignment(null); // čeka izbor imena ili "svejedno"
-    }
-  }
-
-  function pickStaffFromFree(id: string, ime: string) {
-    setAssignment({ origin: "specific", staffId: id, staffName: ime });
-  }
-
-  function pickAnyOfFree() {
-    if (!selectedMerged) return;
-    setAssignment({ origin: "any", exampleName: selectedMerged.freeStaff[0].ime });
+    setAssignment({ origin: "any" });
   }
 
   function goToReview() {
@@ -275,11 +257,11 @@ export function BookingFlow({
       });
       if (res.ok) {
         setConfirmedStaffName(res.staffName);
+        setConfirmedWasAny(assignment.origin === "any");
         setScreen("success");
       } else if (res.reason === "taken") {
         setTakenMsg("Termin je upravo zauzet, izaberi drugi.");
         setSelectedSlot(null);
-        setSelectedMerged(null);
         setAssignment(null);
         setScreen("picker");
         setReloadKey((k) => k + 1);
@@ -304,6 +286,7 @@ export function BookingFlow({
     setEmail("");
     setFormError(null);
     setConfirmedStaffName(null);
+    setConfirmedWasAny(false);
   }
 
   const cardBase =
@@ -316,7 +299,7 @@ export function BookingFlow({
     assignment?.origin === "specific"
       ? assignment.staffName
       : assignment?.origin === "any"
-        ? `Dodeljujemo vam slobodnog radnika (npr. ${assignment.exampleName})`
+        ? "Dodeljujemo vam slobodnog radnika"
         : "";
 
   // ---------------- EKRAN USPEHA ----------------
@@ -332,6 +315,12 @@ export function BookingFlow({
         <p className="mt-2 text-[var(--color-charcoal)]/70">
           Vidimo se u salonu Optima.
         </p>
+
+        {confirmedWasAny && confirmedStaffName && (
+          <p className="mt-3 font-medium text-[var(--color-terracotta)]">
+            Vaš termin je kod {confirmedStaffName}.
+          </p>
+        )}
 
         <div className="mt-6 rounded-xl bg-[var(--color-cream)] p-5 text-left">
           <Row label="Usluga" value={service.name} />
@@ -537,7 +526,7 @@ export function BookingFlow({
             </div>
           )}
 
-          {/* "Bilo ko" — prikaži samo VREMENA (imena tek posle izbora) */}
+          {/* "Bilo ko" — samo vremena; koga dobija se ne pita, dodela ide pri potvrdi */}
           {!loading && !error && anyMode && anySlots.length > 0 && (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {anySlots.map((m) => (
@@ -552,53 +541,6 @@ export function BookingFlow({
           )}
         </section>
       )}
-
-      {/* 4b) IZBOR RADNIKA ZA TO VREME (samo "bilo ko" kad ima više slobodnih) */}
-      {anyMode && selectedMerged && selectedMerged.freeStaff.length > 1 && (
-        <section>
-          <h3 className="mb-4 font-[family-name:var(--font-serif)] text-xl font-semibold">
-            Kod kog radnika?
-          </h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {selectedMerged.freeStaff.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => pickStaffFromFree(f.id, f.ime)}
-                className={`${cardBase} ${
-                  assignment?.origin === "specific" && assignment.staffId === f.id
-                    ? cardActive
-                    : ""
-                }`}
-              >
-                <span className="font-medium">{f.ime}</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={pickAnyOfFree}
-              className={`${cardBase} ${
-                assignment?.origin === "any" ? cardActive : ""
-              } sm:col-span-2`}
-            >
-              <span className="font-medium">Svejedno mi je</span>
-              <span className="mt-0.5 block text-sm text-[var(--color-charcoal)]/60">
-                Dodeljujemo vam slobodnog radnika
-              </span>
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* Napomena za "bilo ko" auto-dodelu (tačno jedan slobodan) */}
-      {anyMode &&
-        selectedMerged &&
-        selectedMerged.freeStaff.length === 1 &&
-        assignment?.origin === "any" && (
-          <p className="rounded-xl bg-[var(--color-beige)] px-5 py-4 text-[var(--color-charcoal)]/80">
-            Dodeljujemo vam slobodnog radnika (npr. {assignment.exampleName}).
-          </p>
-        )}
 
       {/* PODACI MUŠTERIJE — kad je termin + dodela razrešena */}
       {selectedSlot && assignment && service && (
