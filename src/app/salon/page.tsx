@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 // Uvek čitaj sveže iz baze (ne keširaj na build-u).
@@ -76,6 +77,12 @@ export default async function SalonPage() {
           <p className="mt-2 text-[var(--color-charcoal)]/70">
             Naš tim i usluge
           </p>
+          <Link
+            href="/zakazivanje"
+            className="mt-5 inline-block rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
+          >
+            Zakaži termin
+          </Link>
         </header>
 
         {isEmpty ? (
