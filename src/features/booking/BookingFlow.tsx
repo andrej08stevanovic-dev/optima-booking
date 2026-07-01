@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
-import type { Service, StaffMember } from "./types";
-import { createBooking, getAvailableSlots } from "./actions";
+import type { MergedSlot, Service, StaffMember } from "./types";
+import {
+  createBooking,
+  getAvailableSlots,
+  getAvailableSlotsAnyStaff,
+} from "./actions";
 import type { Slot } from "./availability";
 
 type Props = {
@@ -15,6 +19,14 @@ type Props = {
 };
 
 type Screen = "picker" | "review" | "success";
+type SelectedSlot = { startUtcISO: string; label: string };
+// Dodela prati NAMERU mušterije, ne trenutni broj slobodnih:
+//  - 'specific': kliknula konkretno ime (direktno ili iz liste slobodnih)
+//  - 'any': pod "Bilo ko" bez izbora imena (jedan slobodan ili "svejedno mi je")
+type Assignment =
+  | { origin: "specific"; staffId: string; staffName: string }
+  | { origin: "any"; exampleName: string }
+  | null;
 
 function formatPrice(price: number) {
   return `${Number(price).toLocaleString("sr-RS")} din`;
@@ -42,9 +54,14 @@ export function BookingFlow({
   const [screen, setScreen] = useState<Screen>("picker");
 
   const [service, setService] = useState<Service | null>(null);
-  const [staffId, setStaffId] = useState<string | null>(null);
+  const [staffId, setStaffId] = useState<string | null>(null); // konkretan izbor
+  const [anyMode, setAnyMode] = useState(false); // "Bilo ko slobodan"
   const [date, setDate] = useState<string>("");
-  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+
+  const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
+  const [selectedMerged, setSelectedMerged] = useState<MergedSlot | null>(null); // any: slobodni tada
+  const [assignment, setAssignment] = useState<Assignment>(null);
+  const [confirmedStaffName, setConfirmedStaffName] = useState<string | null>(null);
 
   // Podaci mušterije
   const [fullName, setFullName] = useState("");
@@ -52,7 +69,8 @@ export function BookingFlow({
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const [slots, setSlots] = useState<Slot[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]); // specific
+  const [anySlots, setAnySlots] = useState<MergedSlot[]>([]); // any
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outOfRange, setOutOfRange] = useState(false);
@@ -76,7 +94,7 @@ export function BookingFlow({
   const kosa = services.filter((s) => s.category === "kosa");
   const nokti = services.filter((s) => s.category === "nokti");
 
-  const staffName = staff.find((s) => s.id === staffId)?.full_name ?? "";
+  const concreteStaffName = staff.find((s) => s.id === staffId)?.full_name ?? "";
 
   // Radnici koji rade IZABRANU uslugu.
   const availableStaff = useMemo(() => {
@@ -87,13 +105,13 @@ export function BookingFlow({
     return staff.filter((s) => ids.has(s.id));
   }, [service, links, staff]);
 
-  // Učitaj termine kad su usluga + radnik + datum izabrani.
-  useEffect(() => {
-    if (!service || !staffId || !date) return;
+  const hasStaffPick = staffId !== null || anyMode;
 
+  // Učitavanje termina — KONKRETAN radnik.
+  useEffect(() => {
+    if (anyMode || !service || !staffId || !date) return;
     let cancelled = false;
     const serviceId = service.id;
-
     async function load() {
       setLoading(true);
       setError(null);
@@ -118,59 +136,151 @@ export function BookingFlow({
         if (!cancelled) setLoading(false);
       }
     }
-
     load();
     return () => {
       cancelled = true;
     };
-  }, [service, staffId, date, reloadKey]);
+  }, [anyMode, service, staffId, date, reloadKey]);
 
-  function chooseService(s: Service) {
-    setService(s);
-    setStaffId(null);
+  // Učitavanje termina — "BILO KO" (spojeno).
+  useEffect(() => {
+    if (!anyMode || !service || !date) return;
+    let cancelled = false;
+    const serviceId = service.id;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      setSelectedSlot(null);
+      setSelectedMerged(null);
+      setAssignment(null);
+      try {
+        const res = await getAvailableSlotsAnyStaff(serviceId, date);
+        if (cancelled) return;
+        if (res.ok) {
+          setAnySlots(res.slots);
+          setOutOfRange(res.outOfRange);
+        } else {
+          setAnySlots([]);
+          setError(res.error);
+        }
+        setLoaded(true);
+      } catch {
+        if (!cancelled) {
+          setError("Došlo je do greške. Pokušaj ponovo.");
+          setLoaded(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [anyMode, service, date, reloadKey]);
+
+  function resetSelectionState() {
     setDate("");
     setSlots([]);
+    setAnySlots([]);
     setSelectedSlot(null);
+    setSelectedMerged(null);
+    setAssignment(null);
     setLoaded(false);
     setTakenMsg(null);
   }
 
+  function chooseService(s: Service) {
+    setService(s);
+    setStaffId(null);
+    setAnyMode(false);
+    resetSelectionState();
+  }
+
+  function chooseConcreteStaff(id: string) {
+    setStaffId(id);
+    setAnyMode(false);
+    resetSelectionState();
+  }
+
+  function chooseAny() {
+    setAnyMode(true);
+    setStaffId(null);
+    resetSelectionState();
+  }
+
+  function onDateChange(value: string) {
+    setDate(value);
+    setSelectedSlot(null);
+    setSelectedMerged(null);
+    setAssignment(null);
+    setTakenMsg(null);
+  }
+
+  // Izbor vremena — konkretan radnik.
+  function pickSpecificTime(slot: Slot) {
+    setSelectedSlot({ startUtcISO: slot.startUtcISO, label: slot.label });
+    setAssignment({
+      origin: "specific",
+      staffId: staffId!,
+      staffName: concreteStaffName,
+    });
+  }
+
+  // Izbor vremena — "bilo ko". Jedan slobodan => auto (origin='any'); više => bira.
+  function pickAnyTime(m: MergedSlot) {
+    setSelectedSlot({ startUtcISO: m.startUtcISO, label: m.label });
+    setSelectedMerged(m);
+    if (m.freeStaff.length === 1) {
+      setAssignment({ origin: "any", exampleName: m.freeStaff[0].ime });
+    } else {
+      setAssignment(null); // čeka izbor imena ili "svejedno"
+    }
+  }
+
+  function pickStaffFromFree(id: string, ime: string) {
+    setAssignment({ origin: "specific", staffId: id, staffName: ime });
+  }
+
+  function pickAnyOfFree() {
+    if (!selectedMerged) return;
+    setAssignment({ origin: "any", exampleName: selectedMerged.freeStaff[0].ime });
+  }
+
   function goToReview() {
     setFormError(null);
-    if (!fullName.trim()) {
-      setFormError("Unesi ime.");
-      return;
-    }
-    if (!phone.trim()) {
-      setFormError("Unesi broj telefona.");
-      return;
-    }
+    if (!fullName.trim()) return setFormError("Unesi ime.");
+    if (!phone.trim()) return setFormError("Unesi broj telefona.");
     if (email.trim() && !/.+@.+\..+/.test(email.trim())) {
-      setFormError("Email nije ispravan (ili ga ostavi prazan).");
-      return;
+      return setFormError("Email nije ispravan (ili ga ostavi prazan).");
     }
     setScreen("review");
   }
 
   async function confirmBooking() {
-    if (!service || !staffId || !selectedSlot) return;
+    if (!service || !selectedSlot || !assignment) return;
+
     setSubmitting(true);
     setFormError(null);
     try {
       const res = await createBooking({
-        staffId,
         serviceId: service.id,
         startUtcISO: selectedSlot.startUtcISO,
+        origin: assignment.origin,
+        staffId:
+          assignment.origin === "specific" ? assignment.staffId : undefined,
         fullName: fullName.trim(),
         phone: phone.trim(),
         email: email.trim() || undefined,
       });
       if (res.ok) {
+        setConfirmedStaffName(res.staffName);
         setScreen("success");
       } else if (res.reason === "taken") {
-        // Termin je u međuvremenu zauzet — vrati na izbor i osveži listu.
         setTakenMsg("Termin je upravo zauzet, izaberi drugi.");
         setSelectedSlot(null);
+        setSelectedMerged(null);
+        setAssignment(null);
         setScreen("picker");
         setReloadKey((k) => k + 1);
       } else {
@@ -187,15 +297,13 @@ export function BookingFlow({
     setScreen("picker");
     setService(null);
     setStaffId(null);
-    setDate("");
-    setSelectedSlot(null);
-    setSlots([]);
-    setLoaded(false);
+    setAnyMode(false);
+    resetSelectionState();
     setFullName("");
     setPhone("");
     setEmail("");
     setFormError(null);
-    setTakenMsg(null);
+    setConfirmedStaffName(null);
   }
 
   const cardBase =
@@ -203,6 +311,13 @@ export function BookingFlow({
   const cardActive = "ring-2 ring-[var(--color-terracotta)] bg-white";
   const inputBase =
     "w-full rounded-xl border border-[var(--color-beige)] bg-white/60 px-4 py-3 text-[var(--color-charcoal)] outline-none focus:ring-2 focus:ring-[var(--color-terracotta)]";
+
+  const staffLineForReview =
+    assignment?.origin === "specific"
+      ? assignment.staffName
+      : assignment?.origin === "any"
+        ? `Dodeljujemo vam slobodnog radnika (npr. ${assignment.exampleName})`
+        : "";
 
   // ---------------- EKRAN USPEHA ----------------
   if (screen === "success" && service && selectedSlot) {
@@ -220,7 +335,7 @@ export function BookingFlow({
 
         <div className="mt-6 rounded-xl bg-[var(--color-cream)] p-5 text-left">
           <Row label="Usluga" value={service.name} />
-          <Row label="Radnik" value={staffName} />
+          <Row label="Radnik" value={confirmedStaffName ?? ""} />
           <Row
             label="Datum i vreme"
             value={`${formatDate(date)} u ${selectedSlot.label}`}
@@ -244,7 +359,7 @@ export function BookingFlow({
   }
 
   // ---------------- EKRAN PREGLEDA ----------------
-  if (screen === "review" && service && selectedSlot) {
+  if (screen === "review" && service && selectedSlot && assignment) {
     return (
       <div className="flex flex-col gap-6">
         <h2 className="font-[family-name:var(--font-serif)] text-2xl font-semibold">
@@ -253,7 +368,7 @@ export function BookingFlow({
 
         <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-[var(--color-beige)]">
           <Row label="Usluga" value={service.name} />
-          <Row label="Radnik" value={staffName} />
+          <Row label="Radnik" value={staffLineForReview} />
           <Row
             label="Datum i vreme"
             value={`${formatDate(date)} u ${selectedSlot.label}`}
@@ -294,7 +409,7 @@ export function BookingFlow({
     );
   }
 
-  // ---------------- EKRAN IZBORA (koraci 1–5) ----------------
+  // ---------------- EKRAN IZBORA ----------------
   return (
     <div className="flex flex-col gap-10">
       {takenMsg && (
@@ -332,15 +447,27 @@ export function BookingFlow({
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* "Bilo ko" ima smisla samo kad ima >1 radnika za uslugu. */}
+              {availableStaff.length > 1 && (
+                <button
+                  type="button"
+                  onClick={chooseAny}
+                  className={`${cardBase} ${anyMode ? cardActive : ""} sm:col-span-2`}
+                >
+                  <span className="font-medium">Bilo ko slobodan</span>
+                  <span className="mt-0.5 block text-sm text-[var(--color-charcoal)]/60">
+                    Prikaži termine svih radnika za ovu uslugu
+                  </span>
+                </button>
+              )}
               {availableStaff.map((m) => (
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => {
-                    setStaffId(m.id);
-                    setTakenMsg(null);
-                  }}
-                  className={`${cardBase} ${staffId === m.id ? cardActive : ""}`}
+                  onClick={() => chooseConcreteStaff(m.id)}
+                  className={`${cardBase} ${
+                    !anyMode && staffId === m.id ? cardActive : ""
+                  }`}
                 >
                   <span className="font-medium">{m.full_name}</span>
                 </button>
@@ -351,7 +478,7 @@ export function BookingFlow({
       )}
 
       {/* 3) DATUM */}
-      {service && staffId && (
+      {service && hasStaffPick && (
         <section>
           <StepTitle n={3} title="Izaberi datum" />
           <input
@@ -359,17 +486,14 @@ export function BookingFlow({
             value={date}
             min={todayISO}
             max={maxISO}
-            onChange={(e) => {
-              setDate(e.target.value);
-              setTakenMsg(null);
-            }}
+            onChange={(e) => onDateChange(e.target.value)}
             className={inputBase}
           />
         </section>
       )}
 
       {/* 4) TERMINI */}
-      {service && staffId && date && (
+      {service && hasStaffPick && date && (
         <section>
           <StepTitle n={4} title="Izaberi termin" />
 
@@ -389,35 +513,95 @@ export function BookingFlow({
             </p>
           )}
 
-          {!loading && !error && loaded && !outOfRange && slots.length === 0 && (
-            <p className="rounded-xl bg-[var(--color-beige)] px-5 py-4 text-[var(--color-charcoal)]/80">
-              Nema slobodnih termina tog dana.
-            </p>
-          )}
+          {!loading &&
+            !error &&
+            loaded &&
+            !outOfRange &&
+            (anyMode ? anySlots.length === 0 : slots.length === 0) && (
+              <p className="rounded-xl bg-[var(--color-beige)] px-5 py-4 text-[var(--color-charcoal)]/80">
+                Nema slobodnih termina tog dana.
+              </p>
+            )}
 
-          {!loading && !error && slots.length > 0 && (
+          {/* Konkretan radnik */}
+          {!loading && !error && !anyMode && slots.length > 0 && (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {slots.map((slot) => (
-                <button
+                <TimeButton
                   key={slot.startUtcISO}
-                  type="button"
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`rounded-lg px-3 py-2 text-center font-medium ring-1 transition ${
-                    selectedSlot?.startUtcISO === slot.startUtcISO
-                      ? "bg-[var(--color-terracotta)] text-white ring-[var(--color-terracotta)]"
-                      : "bg-white/60 ring-[var(--color-beige)] hover:ring-[var(--color-terracotta)]"
-                  }`}
-                >
-                  {slot.label}
-                </button>
+                  label={slot.label}
+                  active={selectedSlot?.startUtcISO === slot.startUtcISO}
+                  onClick={() => pickSpecificTime(slot)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* "Bilo ko" — prikaži samo VREMENA (imena tek posle izbora) */}
+          {!loading && !error && anyMode && anySlots.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {anySlots.map((m) => (
+                <TimeButton
+                  key={m.startUtcISO}
+                  label={m.label}
+                  active={selectedSlot?.startUtcISO === m.startUtcISO}
+                  onClick={() => pickAnyTime(m)}
+                />
               ))}
             </div>
           )}
         </section>
       )}
 
-      {/* 5) PODACI MUŠTERIJE */}
-      {selectedSlot && service && (
+      {/* 4b) IZBOR RADNIKA ZA TO VREME (samo "bilo ko" kad ima više slobodnih) */}
+      {anyMode && selectedMerged && selectedMerged.freeStaff.length > 1 && (
+        <section>
+          <h3 className="mb-4 font-[family-name:var(--font-serif)] text-xl font-semibold">
+            Kod kog radnika?
+          </h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {selectedMerged.freeStaff.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => pickStaffFromFree(f.id, f.ime)}
+                className={`${cardBase} ${
+                  assignment?.origin === "specific" && assignment.staffId === f.id
+                    ? cardActive
+                    : ""
+                }`}
+              >
+                <span className="font-medium">{f.ime}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={pickAnyOfFree}
+              className={`${cardBase} ${
+                assignment?.origin === "any" ? cardActive : ""
+              } sm:col-span-2`}
+            >
+              <span className="font-medium">Svejedno mi je</span>
+              <span className="mt-0.5 block text-sm text-[var(--color-charcoal)]/60">
+                Dodeljujemo vam slobodnog radnika
+              </span>
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Napomena za "bilo ko" auto-dodelu (tačno jedan slobodan) */}
+      {anyMode &&
+        selectedMerged &&
+        selectedMerged.freeStaff.length === 1 &&
+        assignment?.origin === "any" && (
+          <p className="rounded-xl bg-[var(--color-beige)] px-5 py-4 text-[var(--color-charcoal)]/80">
+            Dodeljujemo vam slobodnog radnika (npr. {assignment.exampleName}).
+          </p>
+        )}
+
+      {/* PODACI MUŠTERIJE — kad je termin + dodela razrešena */}
+      {selectedSlot && assignment && service && (
         <section>
           <StepTitle n={5} title="Tvoji podaci" />
           <div className="flex flex-col gap-3">
@@ -478,6 +662,30 @@ export function BookingFlow({
   );
 }
 
+function TimeButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-3 py-2 text-center font-medium ring-1 transition ${
+        active
+          ? "bg-[var(--color-terracotta)] text-white ring-[var(--color-terracotta)]"
+          : "bg-white/60 ring-[var(--color-beige)] hover:ring-[var(--color-terracotta)]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1">
@@ -530,11 +738,7 @@ function ServiceGroup({
             <span>
               <span className="block font-medium">{s.name}</span>
               <span className="block text-sm text-[var(--color-charcoal)]/60">
-                {s.duration_minutes < 60
-                  ? `${s.duration_minutes} min`
-                  : `${Math.floor(s.duration_minutes / 60)} h${
-                      s.duration_minutes % 60 ? ` ${s.duration_minutes % 60} min` : ""
-                    }`}
+                {formatDuration(s.duration_minutes)}
               </span>
             </span>
             <span className="shrink-0 font-medium">{formatPrice(s.price)}</span>
