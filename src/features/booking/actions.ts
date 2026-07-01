@@ -3,6 +3,7 @@
 import { DateTime } from "luxon";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { broadcastReceptionChange } from "@/lib/realtime";
 import {
   computeAvailableSlots,
   type AvailabilityResult,
@@ -383,6 +384,7 @@ export async function createBooking(
       .select("full_name")
       .eq("id", staffId)
       .single();
+    await broadcastReceptionChange();
     return {
       ok: true,
       staffId,
@@ -426,6 +428,7 @@ export async function createBooking(
       endsAt,
     });
     if (res === "ok") {
+      await broadcastReceptionChange();
       return { ok: true, staffId: s.id, staffName: s.full_name };
     }
     if (res === "error") {
