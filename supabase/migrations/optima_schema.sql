@@ -69,15 +69,19 @@ create table time_off (
   check (starts_at < ends_at)
 );
 
--- Mušterije: identifikacija BROJEM telefona (unique). Email opciono.
+-- Mušterije: identifikacija BROJEM telefona. Telefon je OPCIONO (walk-in bez broja),
+-- ali jedinstven kad postoji (parcijalni unique indeks ispod). Email opciono.
 create table customers (
   id         uuid primary key default gen_random_uuid(),
   full_name  text not null,
-  phone      text not null unique,
+  phone      text,
   email      text,
   notes      text,
   created_at timestamptz not null default now()
 );
+-- Telefon jedinstven SAMO kad postoji; više walk-in mušterija sa NULL telefonom je dozvoljeno.
+create unique index if not exists customers_phone_unique
+  on customers (phone) where phone is not null;
 
 -- Rezervacije. Čuva starts_at i ends_at (trajanje se može produžiti ručno).
 -- EXCLUDE constraint => fizički nemoguć dupli buking za istog radnika.
@@ -90,7 +94,8 @@ create table bookings (
   ends_at     timestamptz not null,
   status      text not null default 'booked'
                 check (status in ('booked','confirmed','done','cancelled','no_show')),
-  source      text not null default 'online',
+  source      text not null default 'online',   -- 'online' | 'reception' | 'walk_in'
+  note        text,                             -- opciona napomena recepcije
   created_at  timestamptz not null default now(),
   check (starts_at < ends_at),
   constraint no_double_booking exclude using gist (

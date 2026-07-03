@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
+import { DatePicker } from "@/components/DatePicker";
 import type { MergedSlot, Service, StaffMember } from "./types";
 import {
   createBooking,
@@ -470,13 +471,12 @@ export function BookingFlow({
       {service && hasStaffPick && (
         <section>
           <StepTitle n={3} title="Izaberi datum" />
-          <input
-            type="date"
+          <DatePicker
             value={date}
-            min={todayISO}
-            max={maxISO}
-            onChange={(e) => onDateChange(e.target.value)}
-            className={inputBase}
+            onChange={onDateChange}
+            timezone={timezone}
+            minDateISO={todayISO}
+            maxDateISO={maxISO}
           />
         </section>
       )}

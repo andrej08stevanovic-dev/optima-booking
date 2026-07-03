@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { loadDayCalendar } from "@/features/reception/data";
+import { loadDayCalendar, loadFormData } from "@/features/reception/data";
 import { ReceptionCalendar } from "@/features/reception/ReceptionCalendar";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,12 @@ export default async function RecepcijaPage({
     requested && DateTime.fromISO(requested, { zone: TZ }).isValid ? requested : todayISO;
 
   let initialData;
+  let formData;
   try {
-    initialData = await loadDayCalendar(dateStr);
+    [initialData, formData] = await Promise.all([
+      loadDayCalendar(dateStr),
+      loadFormData(),
+    ]);
   } catch {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16 text-center">
@@ -32,7 +36,11 @@ export default async function RecepcijaPage({
 
   return (
     <main className="min-h-dvh px-4 py-6 sm:px-6 sm:py-10">
-      <ReceptionCalendar initialData={initialData} todayISO={todayISO} />
+      <ReceptionCalendar
+        initialData={initialData}
+        todayISO={todayISO}
+        formData={formData}
+      />
     </main>
   );
 }
