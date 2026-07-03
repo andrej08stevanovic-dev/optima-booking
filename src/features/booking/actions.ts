@@ -267,6 +267,9 @@ export type CreateBookingResponse =
   | { ok: false; reason: "error"; message: string };
 
 // Nađi mušteriju po telefonu (unique) ili je napravi. Vrati id.
+// Ako mušterija već postoji i sada je unela DRUGAČIJI email, ažuriraj joj ga na
+// najnoviji (Faza 5 odluka: magic-link identitet ide isključivo po email-u, pa
+// stari/pogrešan email na postojećem redu blokira "Moja zakazivanja").
 async function resolveCustomerId(
   fullName: string,
   phone: string,
@@ -274,11 +277,16 @@ async function resolveCustomerId(
 ): Promise<{ ok: true; id: string } | { ok: false }> {
   const existing = await supabaseAdmin
     .from("customers")
-    .select("id")
+    .select("id, email")
     .eq("phone", phone)
     .maybeSingle();
   if (existing.error) return { ok: false };
-  if (existing.data) return { ok: true, id: existing.data.id };
+  if (existing.data) {
+    if (email && email !== existing.data.email) {
+      await supabaseAdmin.from("customers").update({ email }).eq("id", existing.data.id);
+    }
+    return { ok: true, id: existing.data.id };
+  }
 
   const created = await supabaseAdmin
     .from("customers")
