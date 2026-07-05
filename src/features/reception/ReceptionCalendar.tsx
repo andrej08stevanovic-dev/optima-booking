@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DateTime } from "luxon";
 import { supabase } from "@/lib/supabase";
 import { DatePicker } from "@/components/DatePicker";
@@ -25,6 +25,16 @@ type Props = {
   todayISO: string;
   formData: ReceptionFormData;
 };
+
+// Boja bloka po kategoriji usluge (šablon: menja se u globals.css po salonu).
+// Svetla pozadina + tamniji levi accent bar (Google-Calendar stil), tamni tekst.
+const CATEGORY_STYLES: Record<string, { bg: string; bar: string }> = {
+  kosa: { bg: "var(--cat-kosa-bg)", bar: "var(--cat-kosa-bar)" },
+  nokti: { bg: "var(--cat-nokti-bg)", bar: "var(--cat-nokti-bar)" },
+};
+function catStyle(category: string | null) {
+  return CATEGORY_STYLES[category ?? ""] ?? CATEGORY_STYLES.kosa;
+}
 
 function formatMinutes(totalMinutes: number): string {
   const h = Math.floor(totalMinutes / 60);
@@ -100,6 +110,57 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
     };
   }, []);
 
+  // Kategorija po service_id — izvedeno iz formData (sve aktivne usluge), BEZ diranja
+  // upita kalendara. Nedostupna kategorija (npr. usluga postala neaktivna) -> default.
+  const categoryByServiceId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of formData.services) m.set(s.id, s.category);
+    return m;
+  }, [formData.services]);
+
+  // Indikator trenutnog vremena — minuti od ponoći u Beogradu, osvežava se svakog minuta.
+  const [nowMinutes, setNowMinutes] = useState(() => {
+    const n = DateTime.now().setZone(TZ);
+    return n.hour * 60 + n.minute;
+  });
+  useEffect(() => {
+    const tick = () => {
+      const n = DateTime.now().setZone(TZ);
+      setNowMinutes(n.hour * 60 + n.minute);
+    };
+    const t = setInterval(tick, 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Realtime "puls" na NOV termin: reaktivni diff nad data.bookings (ne dira subscription
+  // ni refetch). Pulsira samo kad se termin doda na ISTI dan (ne pri navigaciji/početnom
+  // učitavanju).
+  const prevIdsRef = useRef<Set<string>>(new Set(initialData.bookings.map((b) => b.id)));
+  const prevDateRef = useRef(initialData.dateStr);
+  const [pulseIds, setPulseIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const currentIds = new Set(data.bookings.map((b) => b.id));
+    if (prevDateRef.current !== data.dateStr) {
+      prevDateRef.current = data.dateStr;
+      prevIdsRef.current = currentIds;
+      return;
+    }
+    const added = [...currentIds].filter((id) => !prevIdsRef.current.has(id));
+    prevIdsRef.current = currentIds;
+    if (added.length === 0) return;
+    setPulseIds(new Set(added));
+    const t = setTimeout(() => setPulseIds(new Set()), 3000);
+    return () => clearTimeout(t);
+  }, [data]);
+
+  // Visina naslovnog reda kolona (ime radnika) — meri se, da current-time linija
+  // stoji tačno u telu mreže bez tvrdo kodirane visine.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [headerOffset, setHeaderOffset] = useState(0);
+  useLayoutEffect(() => {
+    if (bodyRef.current) setHeaderOffset(bodyRef.current.offsetTop);
+  }, [data.staff.length, data.gridStartMinutes, data.gridEndMinutes]);
+
   function goTo(offsetDays: number) {
     const next = DateTime.fromISO(dateStr, { zone: TZ }).plus({ days: offsetDays }).toISODate()!;
     setDateStr(next);
@@ -168,51 +229,63 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
     hourMarks.push(m);
   }
 
+  const showNowLine =
+    dateStr === todayISO &&
+    nowMinutes >= data.gridStartMinutes &&
+    nowMinutes <= data.gridEndMinutes;
+  const nowLineTop =
+    headerOffset + (nowMinutes - data.gridStartMinutes) * PX_PER_MINUTE + GRID_INSET_PX;
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <DatePicker
-          value={dateStr}
-          onChange={setDateStr}
-          timezone={TZ}
-          variant="heading"
-          displayText={label}
-        />
+        <div className="rounded-lg bg-[var(--color-charcoal)]/5 px-3 py-1.5">
+          <DatePicker
+            value={dateStr}
+            onChange={setDateStr}
+            timezone={TZ}
+            variant="heading"
+            displayText={label}
+          />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => goTo(-1)}
-            className="rounded-xl px-3 py-2 ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
-            aria-label="Prethodni dan"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={goToday}
-            className="rounded-xl px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
-          >
-            Danas
-          </button>
-          <button
-            type="button"
-            onClick={() => goTo(1)}
-            className="rounded-xl px-3 py-2 ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
-            aria-label="Sledeći dan"
-          >
-            ›
-          </button>
+          {/* Connected button group: ‹ Danas › */}
+          <div className="flex items-center rounded-xl ring-1 ring-[var(--color-beige)]">
+            <button
+              type="button"
+              onClick={() => goTo(-1)}
+              className="btn-press rounded-l-xl px-3 py-2 transition hover:bg-[var(--color-beige)]"
+              aria-label="Prethodni dan"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={goToday}
+              className="btn-press border-x border-[var(--color-beige)] px-4 py-2 font-medium transition hover:bg-[var(--color-beige)]"
+            >
+              Danas
+            </button>
+            <button
+              type="button"
+              onClick={() => goTo(1)}
+              className="btn-press rounded-r-xl px-3 py-2 transition hover:bg-[var(--color-beige)]"
+              aria-label="Sledeći dan"
+            >
+              ›
+            </button>
+          </div>
           <button
             type="button"
             onClick={openWalkIn}
-            className="rounded-xl px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
+            className="btn-press rounded-xl px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] hover:bg-[var(--color-beige)]"
           >
             Walk-in
           </button>
           <button
             type="button"
             onClick={openNew}
-            className="rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
+            className="btn-press rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90"
           >
             + Novi termin
           </button>
@@ -242,13 +315,13 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
               className="overflow-x-auto rounded-xl ring-1 ring-[var(--color-beige)] bg-white/40"
               style={{ maxWidth: 56 + data.staff.length * 160 }}
             >
-              <div className="flex" style={{ minWidth: 56 + data.staff.length * 160 }}>
+              <div className="relative flex" style={{ minWidth: 56 + data.staff.length * 160 }}>
                 {/* Vremenska osa. Nevidljivi red iznad MORA da postoji i da bude identičnih
                     klasa kao naslovni red kolona radnika (ime radnika) — inače osa "isklizne"
                     naviše za visinu tog reda i sati se ne poklapaju sa linijama u kolonama. */}
                 <div className="shrink-0" style={{ width: 56 }}>
                   <div
-                    className="invisible border-b px-2 py-2 text-center text-sm font-medium"
+                    className="invisible border-b-2 px-2 py-2 text-center text-sm font-semibold"
                     aria-hidden="true"
                   >
                     &nbsp;
@@ -257,7 +330,7 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
                     {hourMarks.map((m) => (
                       <div
                         key={m}
-                        className="absolute right-2 -translate-y-1/2 text-xs text-[var(--color-charcoal)]/50"
+                        className="absolute right-2 -translate-y-1/2 tabular-nums text-xs text-[var(--color-charcoal)]/50"
                         style={{ top: (m - data.gridStartMinutes) * PX_PER_MINUTE + GRID_INSET_PX }}
                       >
                         {formatMinutes(m)}
@@ -267,12 +340,13 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
                 </div>
 
                 {/* Kolone radnika */}
-                {data.staff.map((s) => (
+                {data.staff.map((s, idx) => (
                   <div key={s.id} className="w-40 shrink-0 border-l border-[var(--color-beige)]">
-                    <div className="border-b border-[var(--color-beige)] bg-[var(--color-cream)] px-2 py-2 text-center text-sm font-medium">
+                    <div className="border-b-2 border-[var(--color-terracotta)]/70 bg-[var(--color-cream)] px-2 py-2 text-center text-sm font-semibold">
                       {s.full_name}
                     </div>
                     <div
+                      ref={idx === 0 ? bodyRef : undefined}
                       className="relative cursor-pointer"
                       style={{ height: gridHeight }}
                       onClick={(e) =>
@@ -286,7 +360,7 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
                       {hourMarks.map((m) => (
                         <div
                           key={m}
-                          className="absolute left-0 right-0 border-t border-[var(--color-beige)]/60"
+                          className="absolute left-0 right-0 border-t border-[var(--color-beige)]/40"
                           style={{ top: (m - data.gridStartMinutes) * PX_PER_MINUTE + GRID_INSET_PX }}
                         />
                       ))}
@@ -308,6 +382,8 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
                           <BookingBlock
                             key={b.id}
                             booking={b}
+                            category={categoryByServiceId.get(b.serviceId) ?? null}
+                            pulse={pulseIds.has(b.id)}
                             gridStartMinutes={data.gridStartMinutes}
                             onSelect={() => setSelectedBooking(b)}
                           />
@@ -315,6 +391,21 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
                     </div>
                   </div>
                 ))}
+
+                {/* Indikator trenutnog vremena — samo za današnji dan, preko svih kolona */}
+                {showNowLine && (
+                  <div
+                    className="pointer-events-none absolute z-10 flex items-center"
+                    style={{ top: nowLineTop, left: 56, right: 0 }}
+                    aria-hidden="true"
+                  >
+                    <span
+                      className="shrink-0 rounded-full bg-[#ef4444]"
+                      style={{ width: 7, height: 7, marginLeft: -3 }}
+                    />
+                    <span className="flex-1 bg-[#ef4444]" style={{ height: 2 }} />
+                  </div>
+                )}
               </div>
             </div>
           </>
@@ -350,10 +441,14 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
 
 function BookingBlock({
   booking,
+  category,
+  pulse,
   gridStartMinutes,
   onSelect,
 }: {
   booking: DayCalendar["bookings"][number];
+  category: string | null;
+  pulse: boolean;
   gridStartMinutes: number;
   onSelect: () => void;
 }) {
@@ -361,23 +456,33 @@ function BookingBlock({
   const end = minutesInTz(booking.endUtcISO);
   const top = (start - gridStartMinutes) * PX_PER_MINUTE + GRID_INSET_PX;
   const height = Math.max((end - start) * PX_PER_MINUTE, 20);
+  const style = catStyle(category);
 
   return (
     <div
-      className="absolute inset-x-1 cursor-pointer overflow-hidden bg-[var(--color-terracotta)] px-2 py-1 text-xs text-white shadow-sm transition hover:brightness-110"
-      style={{ top, height }}
+      className={`absolute inset-x-1 cursor-pointer overflow-hidden rounded-md px-2 py-1 text-xs text-[var(--color-charcoal)] shadow-[var(--shadow-sm)] transition hover:brightness-[0.97] ${
+        pulse ? "animate-pulse-highlight" : ""
+      }`}
+      style={{
+        top,
+        height,
+        backgroundColor: style.bg,
+        borderLeft: `3px solid ${style.bar}`,
+      }}
       title={`${booking.customerName} · ${booking.customerPhone}`}
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
       }}
     >
-      <div className="font-medium">
+      <div className="font-semibold tabular-nums">
         {formatMinutes(start)}–{formatMinutes(end)}
       </div>
       <div className="truncate">{booking.customerName}</div>
-      <div className="truncate opacity-90">{booking.serviceName}</div>
-      <div className="truncate text-[10px] opacity-75">{booking.customerPhone}</div>
+      <div className="truncate text-[var(--color-charcoal)]/60">{booking.serviceName}</div>
+      <div className="truncate text-[10px] text-[var(--color-charcoal)]/45">
+        {booking.customerPhone}
+      </div>
     </div>
   );
 }

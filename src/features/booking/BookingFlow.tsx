@@ -292,10 +292,10 @@ export function BookingFlow({
   }
 
   const cardBase =
-    "w-full rounded-xl bg-white/60 p-4 text-left shadow-sm ring-1 ring-[var(--color-beige)] transition hover:ring-[var(--color-terracotta)]";
-  const cardActive = "ring-2 ring-[var(--color-terracotta)] bg-white";
+    "card-interactive relative w-full rounded-xl bg-white/60 p-4 text-left shadow-[var(--shadow-sm)] ring-1 ring-[var(--color-beige)] hover:ring-[var(--color-terracotta)]";
+  const cardActive = "ring-2 ring-[var(--color-terracotta)] bg-[var(--color-terracotta)]/8";
   const inputBase =
-    "w-full rounded-xl border border-[var(--color-beige)] bg-white/60 px-4 py-3 text-[var(--color-charcoal)] outline-none focus:ring-2 focus:ring-[var(--color-terracotta)]";
+    "w-full rounded-xl border border-[var(--color-beige)] bg-white/60 px-4 py-3 text-base text-[var(--color-charcoal)] outline-none transition focus:border-[var(--color-terracotta)] focus:ring-[3px] focus:ring-[var(--color-terracotta)]/15";
 
   const staffLineForReview =
     assignment?.origin === "specific"
@@ -307,24 +307,62 @@ export function BookingFlow({
   // ---------------- EKRAN USPEHA ----------------
   if (screen === "success" && service && selectedSlot) {
     return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-[var(--color-beige)]">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-terracotta)] text-2xl text-white">
-          ✓
-        </div>
-        <h2 className="font-[family-name:var(--font-serif)] text-3xl font-semibold">
+      <div className="rounded-2xl bg-white p-8 text-center shadow-[var(--shadow-md)] ring-1 ring-[var(--color-beige)]">
+        <svg
+          width="64"
+          height="64"
+          viewBox="0 0 64 64"
+          fill="none"
+          className="mx-auto mb-4 text-[#059669]"
+          aria-hidden="true"
+        >
+          <circle
+            cx="32"
+            cy="32"
+            r="30"
+            stroke="currentColor"
+            strokeWidth="2"
+            style={{ transformOrigin: "center", animation: "checkmarkCircleGrow 0.4s var(--ease-out-expo) both" }}
+          />
+          <path
+            d="M20 32 L28 40 L44 24"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              strokeDasharray: 48,
+              strokeDashoffset: 48,
+              animation: "checkmarkDraw 0.5s var(--ease-out-expo) 0.3s both",
+            }}
+          />
+        </svg>
+        <h2
+          className="font-[family-name:var(--font-serif)] text-3xl font-semibold"
+          style={{ animation: "fadeIn var(--duration-normal) var(--ease-out-expo) 0.5s both" }}
+        >
           Termin je zakazan!
         </h2>
-        <p className="mt-2 text-[var(--color-charcoal)]/70">
+        <p
+          className="mt-2 text-[var(--color-charcoal)]/70"
+          style={{ animation: "fadeIn var(--duration-normal) var(--ease-out-expo) 0.6s both" }}
+        >
           Vidimo se u salonu Optima.
         </p>
 
         {confirmedWasAny && confirmedStaffName && (
-          <p className="mt-3 font-medium text-[var(--color-terracotta)]">
+          <p
+            className="mt-3 font-medium text-[var(--color-terracotta)]"
+            style={{ animation: "fadeIn var(--duration-normal) var(--ease-out-expo) 0.65s both" }}
+          >
             Vaš termin je kod {confirmedStaffName}.
           </p>
         )}
 
-        <div className="mt-6 rounded-xl bg-[var(--color-cream)] p-5 text-left">
+        <div
+          className="mt-6 rounded-xl bg-[var(--color-cream)] p-5 text-left"
+          style={{ animation: "fadeIn var(--duration-normal) var(--ease-out-expo) 0.7s both" }}
+        >
           <Row label="Usluga" value={service.name} />
           <Row label="Radnik" value={confirmedStaffName ?? ""} />
           <Row
@@ -338,27 +376,29 @@ export function BookingFlow({
           {email.trim() && <Row label="Email" value={email.trim()} />}
         </div>
 
-        <button
-          type="button"
-          onClick={resetAll}
-          className="mt-6 w-full rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
-        >
-          Zakaži još jedan termin
-        </button>
+        <div style={{ animation: "fadeIn var(--duration-normal) var(--ease-out-expo) 0.9s both" }}>
+          <button
+            type="button"
+            onClick={resetAll}
+            className="btn-press mt-6 w-full rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90"
+          >
+            Zakaži još jedan termin
+          </button>
 
-        <div className="mt-3 flex flex-col-reverse gap-3 sm:flex-row">
-          <Link
-            href="/"
-            className="flex-1 rounded-xl border border-[var(--color-beige)] px-6 py-3 text-center font-medium text-[var(--color-charcoal)] transition hover:bg-[var(--color-beige)]"
-          >
-            Nazad na početnu
-          </Link>
-          <Link
-            href="/prijava"
-            className="flex-1 rounded-xl border border-[var(--color-beige)] px-6 py-3 text-center font-medium text-[var(--color-charcoal)] transition hover:bg-[var(--color-beige)]"
-          >
-            Pogledaj svoje termine
-          </Link>
+          <div className="mt-3 flex flex-col-reverse gap-3 sm:flex-row">
+            <Link
+              href="/"
+              className="btn-press flex-1 rounded-xl border border-[var(--color-beige)] px-6 py-3 text-center font-medium text-[var(--color-charcoal)] hover:bg-[var(--color-beige)]"
+            >
+              Nazad na početnu
+            </Link>
+            <Link
+              href="/prijava"
+              className="btn-press flex-1 rounded-xl border border-[var(--color-beige)] px-6 py-3 text-center font-medium text-[var(--color-charcoal)] hover:bg-[var(--color-beige)]"
+            >
+              Pogledaj svoje termine
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -367,12 +407,12 @@ export function BookingFlow({
   // ---------------- EKRAN PREGLEDA ----------------
   if (screen === "review" && service && selectedSlot && assignment) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 animate-slide-right">
         <h2 className="font-[family-name:var(--font-serif)] text-2xl font-semibold">
           Pregled rezervacije
         </h2>
 
-        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-[var(--color-beige)]">
+        <div className="rounded-2xl bg-white p-6 shadow-[var(--shadow-md)] ring-1 ring-[var(--color-beige)]">
           <Row label="Usluga" value={service.name} />
           <Row label="Radnik" value={staffLineForReview} />
           <Row
@@ -398,7 +438,7 @@ export function BookingFlow({
             type="button"
             onClick={() => setScreen("picker")}
             disabled={submitting}
-            className="rounded-xl border border-[var(--color-beige)] px-6 py-3 font-medium text-[var(--color-charcoal)] transition hover:bg-[var(--color-beige)] disabled:opacity-50"
+            className="btn-press rounded-xl border border-[var(--color-beige)] px-6 py-3 font-medium text-[var(--color-charcoal)] hover:bg-[var(--color-beige)] disabled:opacity-50"
           >
             Nazad
           </button>
@@ -406,7 +446,8 @@ export function BookingFlow({
             type="button"
             onClick={confirmBooking}
             disabled={submitting}
-            className="flex-1 rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+            className="btn-press flex-1 rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90 disabled:opacity-60"
+            style={submitting ? { animation: "pulseOpacity 1.5s ease-in-out infinite" } : undefined}
           >
             {submitting ? "Zakazujem…" : "Potvrdi"}
           </button>
@@ -416,8 +457,13 @@ export function BookingFlow({
   }
 
   // ---------------- EKRAN IZBORA ----------------
+  // Korak se izvodi iz stanja (jedna skrol-stranica, sekcije se progresivno otkrivaju).
+  const currentStep = !service ? 1 : !hasStaffPick ? 2 : !date ? 3 : !selectedSlot ? 4 : 5;
+
   return (
     <div className="flex flex-col gap-10">
+      <ProgressBar current={currentStep} total={5} />
+
       {takenMsg && (
         <p className="rounded-xl bg-[#fdece8] px-5 py-4 text-[var(--color-terracotta)]">
           {takenMsg}
@@ -425,8 +471,8 @@ export function BookingFlow({
       )}
 
       {/* 1) USLUGA */}
-      <section>
-        <StepTitle n={1} title="Izaberi uslugu" />
+      <section className="animate-fade-in">
+        <StepTitle title="Izaberi uslugu" />
         <div className="flex flex-col gap-6">
           <ServiceGroup
             title="Kosa"
@@ -445,8 +491,8 @@ export function BookingFlow({
 
       {/* 2) RADNIK */}
       {service && (
-        <section>
-          <StepTitle n={2} title="Izaberi radnika" />
+        <section className="animate-slide-right">
+          <StepTitle title="Izaberi radnika" />
           {availableStaff.length === 0 ? (
             <p className="rounded-xl bg-[var(--color-beige)] px-5 py-4 text-[var(--color-charcoal)]/80">
               Trenutno nema radnika za ovu uslugu.
@@ -460,24 +506,27 @@ export function BookingFlow({
                   onClick={chooseAny}
                   className={`${cardBase} ${anyMode ? cardActive : ""} sm:col-span-2`}
                 >
-                  <span className="font-medium">Bilo ko slobodan</span>
-                  <span className="mt-0.5 block text-sm text-[var(--color-charcoal)]/60">
+                  {anyMode && <SelectedCheck />}
+                  <span className="font-medium">✨ Bilo ko slobodan</span>
+                  <span className="mt-0.5 block text-sm italic text-[var(--color-charcoal)]/60">
                     Prikaži termine svih radnika za ovu uslugu
                   </span>
                 </button>
               )}
-              {availableStaff.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => chooseConcreteStaff(m.id)}
-                  className={`${cardBase} ${
-                    !anyMode && staffId === m.id ? cardActive : ""
-                  }`}
-                >
-                  <span className="font-medium">{m.full_name}</span>
-                </button>
-              ))}
+              {availableStaff.map((m) => {
+                const isSel = !anyMode && staffId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => chooseConcreteStaff(m.id)}
+                    className={`${cardBase} ${isSel ? cardActive : ""}`}
+                  >
+                    {isSel && <SelectedCheck />}
+                    <span className="font-medium">{m.full_name}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </section>
@@ -485,8 +534,8 @@ export function BookingFlow({
 
       {/* 3) DATUM */}
       {service && hasStaffPick && (
-        <section>
-          <StepTitle n={3} title="Izaberi datum" />
+        <section className="animate-slide-right">
+          <StepTitle title="Izaberi datum" />
           <DatePicker
             value={date}
             onChange={onDateChange}
@@ -499,8 +548,8 @@ export function BookingFlow({
 
       {/* 4) TERMINI */}
       {service && hasStaffPick && date && (
-        <section>
-          <StepTitle n={4} title="Izaberi termin" />
+        <section className="animate-slide-right">
+          <StepTitle title="Izaberi termin" />
 
           {loading && (
             <p className="text-[var(--color-charcoal)]/70">Učitavam termine…</p>
@@ -560,8 +609,8 @@ export function BookingFlow({
 
       {/* PODACI MUŠTERIJE — kad je termin + dodela razrešena */}
       {selectedSlot && assignment && service && (
-        <section>
-          <StepTitle n={5} title="Tvoji podaci" />
+        <section className="animate-slide-right">
+          <StepTitle title="Tvoji podaci" />
           <div className="flex flex-col gap-3">
             <div>
               <label className="mb-1 block text-sm text-[var(--color-charcoal)]/70">
@@ -609,7 +658,7 @@ export function BookingFlow({
             <button
               type="button"
               onClick={goToReview}
-              className="mt-2 rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
+              className="btn-press mt-2 rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90"
             >
               Pregledaj termin
             </button>
@@ -633,14 +682,24 @@ function TimeButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg px-3 py-2 text-center font-medium ring-1 transition ${
+      className={`btn-press rounded-full px-3 py-2 text-center font-medium ring-1 ${
         active
-          ? "bg-[var(--color-terracotta)] text-white ring-[var(--color-terracotta)]"
-          : "bg-white/60 ring-[var(--color-beige)] hover:ring-[var(--color-terracotta)]"
+          ? "bg-[var(--color-terracotta)] text-white ring-[var(--color-terracotta)] shadow-[var(--shadow-sm)]"
+          : "bg-white ring-[var(--color-beige)] hover:bg-[var(--color-terracotta)]/8 hover:ring-[var(--color-terracotta)]"
       }`}
     >
       {label}
     </button>
+  );
+}
+
+// Kružić sa ✓ u gornjem desnom uglu selektovane kartice — jasan signal izbora
+// (ne oslanja se samo na ivicu, koja se lako previdi).
+function SelectedCheck() {
+  return (
+    <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-terracotta)] text-[11px] font-bold text-white">
+      ✓
+    </span>
   );
 }
 
@@ -653,14 +712,28 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StepTitle({ n, title }: { n: number; title: string }) {
+function StepTitle({ title }: { title: string }) {
   return (
-    <h2 className="mb-4 flex items-center gap-3 font-[family-name:var(--font-serif)] text-2xl font-semibold">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-terracotta)] text-base text-white">
-        {n}
-      </span>
+    <h2 className="mb-4 font-[family-name:var(--font-serif)] text-2xl font-semibold">
       {title}
     </h2>
+  );
+}
+
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  const pct = Math.round((current / total) * 100);
+  return (
+    <div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-terracotta)]/12">
+        <div
+          className="h-full rounded-full bg-[var(--color-terracotta)]"
+          style={{ width: `${pct}%`, transition: "width var(--duration-slow) var(--ease-out-expo)" }}
+        />
+      </div>
+      <p className="mt-2 text-sm text-[var(--color-charcoal)]/60">
+        Korak {current} od {total}
+      </p>
+    </div>
   );
 }
 
@@ -678,30 +751,35 @@ function ServiceGroup({
   if (items.length === 0) return null;
   return (
     <div>
-      <h3 className="mb-3 text-sm font-medium uppercase tracking-[0.15em] text-[var(--color-terracotta)]">
-        {title}
-      </h3>
+      <div className="mb-3">
+        <h3 className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--color-terracotta)]">
+          {title}
+        </h3>
+        <div className="mt-1 h-px w-8 bg-[var(--color-terracotta)]" />
+      </div>
       <div className="flex flex-col gap-2">
-        {items.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => onPick(s)}
-            className={`flex w-full items-center justify-between gap-4 rounded-xl bg-white/60 px-5 py-4 text-left shadow-sm ring-1 ring-[var(--color-beige)] transition hover:ring-[var(--color-terracotta)] ${
-              selectedId === s.id
-                ? "ring-2 ring-[var(--color-terracotta)] bg-white"
-                : ""
-            }`}
-          >
-            <span>
-              <span className="block font-medium">{s.name}</span>
-              <span className="block text-sm text-[var(--color-charcoal)]/60">
-                {formatDuration(s.duration_minutes)}
+        {items.map((s) => {
+          const isSel = selectedId === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onPick(s)}
+              className={`card-interactive relative flex w-full items-center justify-between gap-4 rounded-xl bg-white/60 px-5 py-4 text-left shadow-[var(--shadow-sm)] ring-1 ring-[var(--color-beige)] hover:ring-[var(--color-terracotta)] ${
+                isSel ? "ring-2 ring-[var(--color-terracotta)] bg-[var(--color-terracotta)]/8" : ""
+              }`}
+            >
+              {isSel && <SelectedCheck />}
+              <span className={isSel ? "pr-6" : ""}>
+                <span className="block font-medium">{s.name}</span>
+                <span className="block text-sm text-[var(--color-charcoal)]/60">
+                  {formatDuration(s.duration_minutes)}
+                </span>
               </span>
-            </span>
-            <span className="shrink-0 font-medium">{formatPrice(s.price)}</span>
-          </button>
-        ))}
+              <span className="shrink-0 font-semibold">{formatPrice(s.price)}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -39,11 +39,11 @@ export function BookingDetail({ booking, onClose, onEdit, onCancelled }: Props) 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
+      className="animate-backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-[var(--color-cream)] p-6 shadow-xl ring-1 ring-[var(--color-beige)]"
+        className="animate-slide-up w-full max-w-sm rounded-2xl bg-[var(--color-cream)] p-6 shadow-[var(--shadow-lg)] ring-1 ring-[var(--color-beige)]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-4 font-[family-name:var(--font-serif)] text-2xl font-semibold">
@@ -71,21 +71,21 @@ export function BookingDetail({ booking, onClose, onEdit, onCancelled }: Props) 
             <button
               type="button"
               onClick={onEdit}
-              className="w-full rounded-xl bg-[var(--color-terracotta)] px-6 py-2.5 font-medium text-white shadow-sm transition hover:opacity-90"
+              className="btn-press w-full rounded-xl bg-[var(--color-terracotta)] px-6 py-2.5 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90"
             >
               Izmeni
             </button>
             <button
               type="button"
               onClick={() => setConfirming(true)}
-              className="w-full rounded-xl border border-[var(--color-terracotta)] px-6 py-2.5 font-medium text-[var(--color-terracotta)] transition hover:bg-[#fdece8]"
+              className="btn-press w-full rounded-xl border border-[var(--color-terracotta)] px-6 py-2.5 font-medium text-[var(--color-terracotta)] hover:bg-[#fdece8]"
             >
               Otkaži termin
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-[var(--color-beige)] px-6 py-2.5 font-medium text-[var(--color-charcoal)]/70 transition hover:bg-[var(--color-beige)]"
+              className="btn-press w-full rounded-xl border border-[var(--color-beige)] px-6 py-2.5 font-medium text-[var(--color-charcoal)]/70 hover:bg-[var(--color-beige)]"
             >
               Zatvori
             </button>
@@ -100,7 +100,7 @@ export function BookingDetail({ booking, onClose, onEdit, onCancelled }: Props) 
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={cancelling}
-                className="rounded-xl border border-[var(--color-beige)] px-6 py-2.5 font-medium transition hover:bg-[var(--color-beige)] disabled:opacity-50"
+                className="btn-press rounded-xl border border-[var(--color-beige)] px-6 py-2.5 font-medium hover:bg-[var(--color-beige)] disabled:opacity-50"
               >
                 Ne
               </button>
@@ -108,7 +108,8 @@ export function BookingDetail({ booking, onClose, onEdit, onCancelled }: Props) 
                 type="button"
                 onClick={doCancel}
                 disabled={cancelling}
-                className="flex-1 rounded-xl bg-[var(--color-terracotta)] px-6 py-2.5 font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+                className="btn-press flex-1 rounded-xl bg-[var(--color-terracotta)] px-6 py-2.5 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90 disabled:opacity-60"
+                style={cancelling ? { animation: "pulseOpacity 1.5s ease-in-out infinite" } : undefined}
               >
                 {cancelling ? "Otkazujem…" : "Da, otkaži"}
               </button>

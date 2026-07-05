@@ -138,7 +138,7 @@ export default async function Home() {
           <span className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-terracotta)]">
             Frizerski salon · Vranje
           </span>
-          <h1 className="mt-2 font-[family-name:var(--font-serif)] text-5xl font-semibold sm:text-6xl">
+          <h1 className="mt-2 font-[family-name:var(--font-serif)] text-5xl font-semibold tracking-[-0.02em] sm:text-6xl">
             Optima
           </h1>
           <p className="mx-auto mt-3 max-w-md text-[var(--color-charcoal)]/70">
@@ -148,13 +148,13 @@ export default async function Home() {
           <div className="mt-6 flex flex-col items-center gap-3">
             <Link
               href="/zakazivanje"
-              className="rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
+              className="btn-press rounded-xl bg-[var(--color-terracotta)] px-8 py-3.5 font-medium text-white shadow-[var(--shadow-md)] hover:opacity-90"
             >
               Zakaži termin
             </Link>
             <Link
               href="/prijava"
-              className="text-sm font-medium text-[var(--color-charcoal)]/70 transition hover:text-[var(--color-terracotta)]"
+              className="border-b border-transparent text-sm font-medium text-[var(--color-charcoal)]/70 transition hover:border-[var(--color-terracotta)] hover:text-[var(--color-terracotta)]"
             >
               Moji termini
             </Link>
@@ -166,15 +166,23 @@ export default async function Home() {
               Radimo po dogovoru — pozovite ili zakažite online.
             </p>
           ) : (
-            <div className="mt-8 rounded-xl bg-white/60 p-5 shadow-sm ring-1 ring-[var(--color-beige)]">
-              <h2 className="mb-2 text-sm font-medium uppercase tracking-[0.15em] text-[var(--color-terracotta)]">
+            <div className="mt-8 rounded-2xl bg-white/60 p-5 shadow-[var(--shadow-md)] ring-1 ring-[var(--color-beige)]">
+              <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.08em] text-[var(--color-terracotta)]">
                 Radno vreme
               </h2>
               <dl className="flex flex-col gap-1 text-sm">
                 {salonHours.map((row) => (
                   <div key={row.days} className="flex items-center justify-between gap-4">
                     <dt className="text-[var(--color-charcoal)]/70">{row.days}</dt>
-                    <dd className="font-medium">{row.hours}</dd>
+                    <dd
+                      className={
+                        row.hours === "Zatvoreno"
+                          ? "font-medium text-[#b0574a]"
+                          : "font-medium tabular-nums"
+                      }
+                    >
+                      {row.hours}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -201,7 +209,7 @@ export default async function Home() {
                   return (
                     <div
                       key={member.id}
-                      className="rounded-xl bg-white/60 p-5 shadow-sm ring-1 ring-[var(--color-beige)]"
+                      className="rounded-2xl bg-white/60 p-5 shadow-[var(--shadow-sm)] ring-1 ring-[var(--color-beige)]"
                     >
                       <h3 className="text-lg font-semibold">
                         {member.full_name}
@@ -211,7 +219,7 @@ export default async function Home() {
                           {usluge.map((u) => (
                             <span
                               key={u}
-                              className="rounded-full bg-[var(--color-beige)] px-3 py-1 text-sm text-[var(--color-charcoal)]/80"
+                              className="rounded-full bg-[var(--color-terracotta)]/8 px-3 py-1 text-[13px] text-[var(--color-charcoal)]/80"
                             >
                               {u}
                             </span>

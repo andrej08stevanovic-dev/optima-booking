@@ -70,7 +70,7 @@ export function TimePicker({
                   ref={isSelected ? selectedRef : undefined}
                   type="button"
                   onClick={() => pick(t)}
-                  className={`rounded-lg px-2 py-1.5 text-center text-sm transition ${
+                  className={`rounded-full px-2 py-1.5 text-center text-sm tabular-nums transition ${
                     isSelected
                       ? "bg-[var(--color-terracotta)] font-medium text-white"
                       : "hover:bg-[var(--color-beige)]"

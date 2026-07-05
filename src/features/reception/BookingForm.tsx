@@ -27,7 +27,7 @@ type Props = {
 };
 
 const inputBase =
-  "w-full rounded-xl border border-[var(--color-beige)] bg-white/60 px-4 py-2.5 text-[var(--color-charcoal)] outline-none focus:ring-2 focus:ring-[var(--color-terracotta)]";
+  "w-full rounded-xl border border-[var(--color-beige)] bg-white/60 px-4 py-2.5 text-base text-[var(--color-charcoal)] outline-none transition focus:border-[var(--color-terracotta)] focus:ring-[3px] focus:ring-[var(--color-terracotta)]/15";
 const labelBase = "mb-1 block text-sm text-[var(--color-charcoal)]/70";
 
 export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
@@ -125,11 +125,11 @@ export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
+      className="animate-backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-[var(--color-cream)] p-6 shadow-xl ring-1 ring-[var(--color-beige)]"
+        className="animate-slide-up w-full max-w-md rounded-2xl bg-[var(--color-cream)] p-6 shadow-[var(--shadow-lg)] ring-1 ring-[var(--color-beige)]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-5 font-[family-name:var(--font-serif)] text-2xl font-semibold">
@@ -238,14 +238,15 @@ export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="rounded-xl border border-[var(--color-beige)] px-6 py-2.5 font-medium transition hover:bg-[var(--color-beige)] disabled:opacity-50"
+              className="btn-press rounded-xl border border-[var(--color-beige)] px-6 py-2.5 font-medium hover:bg-[var(--color-beige)] disabled:opacity-50"
             >
               Zatvori
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 rounded-xl bg-[var(--color-terracotta)] px-6 py-2.5 font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+              className="btn-press flex-1 rounded-xl bg-[var(--color-terracotta)] px-6 py-2.5 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90 disabled:opacity-60"
+              style={submitting ? { animation: "pulseOpacity 1.5s ease-in-out infinite" } : undefined}
             >
               {submitting ? "Čuvam…" : isEdit ? "Sačuvaj izmene" : "Zakaži"}
             </button>
