@@ -50,7 +50,7 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
         Da li ste sigurni da želite da otkažete ovaj termin?
       </p>
       {error && (
-        <p className="rounded-xl bg-[#fdece8] px-4 py-2.5 text-sm text-[var(--color-terracotta)]">
+        <p className="rounded-xl bg-[#fdece8] px-4 py-3 text-sm text-[var(--color-terracotta)]">
           {error}
         </p>
       )}

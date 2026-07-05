@@ -26,7 +26,7 @@ export default async function RecepcijaPage({
     ]);
   } catch {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16 text-center">
+      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         <p className="text-[var(--color-charcoal)]/80">
           Trenutno ne možemo da učitamo kalendar. Pokušaj ponovo malo kasnije.
         </p>
@@ -35,7 +35,7 @@ export default async function RecepcijaPage({
   }
 
   return (
-    <main className="min-h-dvh px-4 py-6 sm:px-6 sm:py-10">
+    <main className="px-4 py-10 sm:px-6 sm:py-12">
       <ReceptionCalendar
         initialData={initialData}
         todayISO={todayISO}

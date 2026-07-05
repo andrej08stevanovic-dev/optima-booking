@@ -8,9 +8,9 @@ export default async function RecepcijaLoginPage({
   const params = await searchParams;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16">
+    <main className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-12">
       <div className="w-full max-w-sm">
-        <h1 className="mb-2 text-center font-[family-name:var(--font-serif)] text-3xl font-semibold">
+        <h1 className="mb-2 text-center font-[family-name:var(--font-serif)] text-3xl font-semibold sm:text-4xl">
           Recepcija
         </h1>
         <p className="mb-8 text-center text-[var(--color-charcoal)]/70">

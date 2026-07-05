@@ -43,10 +43,10 @@ export function BookingDetail({ booking, onClose, onEdit, onCancelled }: Props) 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-[var(--color-cream)] p-6 shadow-xl"
+        className="w-full max-w-sm rounded-2xl bg-[var(--color-cream)] p-6 shadow-xl ring-1 ring-[var(--color-beige)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 font-[family-name:var(--font-serif)] text-xl font-semibold">
+        <h2 className="mb-4 font-[family-name:var(--font-serif)] text-2xl font-semibold">
           {booking.customerName}
         </h2>
 
@@ -85,7 +85,7 @@ export function BookingDetail({ booking, onClose, onEdit, onCancelled }: Props) 
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl px-6 py-2.5 font-medium text-[var(--color-charcoal)]/70 transition hover:bg-[var(--color-beige)]"
+              className="w-full rounded-xl border border-[var(--color-beige)] px-6 py-2.5 font-medium text-[var(--color-charcoal)]/70 transition hover:bg-[var(--color-beige)]"
             >
               Zatvori
             </button>

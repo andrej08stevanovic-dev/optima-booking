@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DateTime } from "luxon";
+import { SiteHeader } from "@/components/SiteHeader";
 import { getCustomerEmail } from "@/lib/customer-guard";
 import { loadMyBookings } from "@/features/customer-bookings/data";
 import { signOutCustomer } from "@/features/customer-auth/actions";
@@ -30,7 +31,7 @@ export default async function MojaZakazivanjaPage() {
     bookings = data.bookings;
   } catch {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16 text-center">
+      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         <div className="max-w-md">
           <h1 className="mb-3 font-[family-name:var(--font-serif)] text-3xl font-semibold">
             Greška pri učitavanju
@@ -57,7 +58,9 @@ export default async function MojaZakazivanjaPage() {
   const past = bookings.filter((b) => !upcomingIds.has(b.id));
 
   return (
-    <main className="min-h-dvh px-6 py-12">
+    <>
+      <SiteHeader />
+      <main className="px-4 py-10 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
@@ -122,7 +125,8 @@ export default async function MojaZakazivanjaPage() {
           </div>
         )}
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 

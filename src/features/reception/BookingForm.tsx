@@ -27,7 +27,7 @@ type Props = {
 };
 
 const inputBase =
-  "w-full rounded-xl border border-[var(--color-beige)] bg-white px-4 py-2.5 text-[var(--color-charcoal)] outline-none focus:ring-2 focus:ring-[var(--color-terracotta)]";
+  "w-full rounded-xl border border-[var(--color-beige)] bg-white/60 px-4 py-2.5 text-[var(--color-charcoal)] outline-none focus:ring-2 focus:ring-[var(--color-terracotta)]";
 const labelBase = "mb-1 block text-sm text-[var(--color-charcoal)]/70";
 
 export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
@@ -129,7 +129,7 @@ export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-[var(--color-cream)] p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl bg-[var(--color-cream)] p-6 shadow-xl ring-1 ring-[var(--color-beige)]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-5 font-[family-name:var(--font-serif)] text-2xl font-semibold">

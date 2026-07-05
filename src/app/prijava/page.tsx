@@ -1,4 +1,5 @@
 import { sendMagicLink } from "@/features/customer-auth/actions";
+import { SiteHeader } from "@/components/SiteHeader";
 
 const GENERIC_MESSAGE =
   "Ako imate zakazan termin kod nas sa ovom e-mail adresom, poslali smo vam link za prijavu. Proverite inbox (i spam folder).";
@@ -11,9 +12,11 @@ export default async function PrijavaPage({
   const params = await searchParams;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16">
+    <>
+      <SiteHeader />
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-12">
       <div className="w-full max-w-sm">
-        <h1 className="mb-2 text-center font-[family-name:var(--font-serif)] text-3xl font-semibold">
+        <h1 className="mb-2 text-center font-[family-name:var(--font-serif)] text-3xl font-semibold sm:text-4xl">
           Moja zakazivanja
         </h1>
         <p className="mb-8 text-center text-[var(--color-charcoal)]/70">
@@ -50,6 +53,7 @@ export default async function PrijavaPage({
           </form>
         )}
       </div>
-    </main>
+      </main>
+    </>
   );
 }

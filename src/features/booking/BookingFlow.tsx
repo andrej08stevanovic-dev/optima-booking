@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { DateTime } from "luxon";
 import { DatePicker } from "@/components/DatePicker";
 import type { MergedSlot, Service, StaffMember } from "./types";
@@ -340,10 +341,25 @@ export function BookingFlow({
         <button
           type="button"
           onClick={resetAll}
-          className="mt-6 rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
+          className="mt-6 w-full rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
         >
           Zakaži još jedan termin
         </button>
+
+        <div className="mt-3 flex flex-col-reverse gap-3 sm:flex-row">
+          <Link
+            href="/"
+            className="flex-1 rounded-xl border border-[var(--color-beige)] px-6 py-3 text-center font-medium text-[var(--color-charcoal)] transition hover:bg-[var(--color-beige)]"
+          >
+            Nazad na početnu
+          </Link>
+          <Link
+            href="/prijava"
+            className="flex-1 rounded-xl border border-[var(--color-beige)] px-6 py-3 text-center font-medium text-[var(--color-charcoal)] transition hover:bg-[var(--color-beige)]"
+          >
+            Pogledaj svoje termine
+          </Link>
+        </div>
       </div>
     );
   }
@@ -585,7 +601,7 @@ export function BookingFlow({
             </div>
 
             {formError && (
-              <p className="rounded-xl bg-[#fdece8] px-5 py-3 text-[var(--color-terracotta)]">
+              <p className="rounded-xl bg-[#fdece8] px-5 py-4 text-[var(--color-terracotta)]">
                 {formError}
               </p>
             )}

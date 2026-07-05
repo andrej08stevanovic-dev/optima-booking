@@ -182,7 +182,7 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
           <button
             type="button"
             onClick={() => goTo(-1)}
-            className="rounded-lg px-3 py-2 ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
+            className="rounded-xl px-3 py-2 ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
             aria-label="Prethodni dan"
           >
             ‹
@@ -190,14 +190,14 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
           <button
             type="button"
             onClick={goToday}
-            className="rounded-lg px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
+            className="rounded-xl px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
           >
             Danas
           </button>
           <button
             type="button"
             onClick={() => goTo(1)}
-            className="rounded-lg px-3 py-2 ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
+            className="rounded-xl px-3 py-2 ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
             aria-label="Sledeći dan"
           >
             ›
@@ -205,14 +205,14 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
           <button
             type="button"
             onClick={openWalkIn}
-            className="rounded-lg px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
+            className="rounded-xl px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] transition hover:bg-[var(--color-beige)]"
           >
             Walk-in
           </button>
           <button
             type="button"
             onClick={openNew}
-            className="rounded-lg bg-[var(--color-terracotta)] px-4 py-2 font-medium text-white shadow-sm transition hover:opacity-90"
+            className="rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-sm transition hover:opacity-90"
           >
             + Novi termin
           </button>
@@ -227,7 +227,7 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
           pri navigaciji datuma (učitavanje ne menja visinu stranice). */}
       <div className={`transition-opacity ${loading ? "opacity-50" : "opacity-100"}`}>
         {data.staff.length === 0 ? (
-          <p className="rounded-xl bg-[var(--color-beige)] px-5 py-6 text-center text-[var(--color-charcoal)]/80">
+          <p className="rounded-xl bg-[var(--color-beige)] px-5 py-8 text-center text-[var(--color-charcoal)]/80">
             Nema aktivnih radnika.
           </p>
         ) : (
@@ -238,7 +238,10 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
               </p>
             )}
 
-            <div className="overflow-x-auto rounded-xl ring-1 ring-[var(--color-beige)] bg-white/40">
+            <div
+              className="overflow-x-auto rounded-xl ring-1 ring-[var(--color-beige)] bg-white/40"
+              style={{ maxWidth: 56 + data.staff.length * 160 }}
+            >
               <div className="flex" style={{ minWidth: 56 + data.staff.length * 160 }}>
                 {/* Vremenska osa. Nevidljivi red iznad MORA da postoji i da bude identičnih
                     klasa kao naslovni red kolona radnika (ime radnika) — inače osa "isklizne"
@@ -361,7 +364,7 @@ function BookingBlock({
 
   return (
     <div
-      className="absolute inset-x-1 cursor-pointer overflow-hidden rounded-md bg-[var(--color-terracotta)] px-2 py-1 text-xs text-white shadow-sm transition hover:brightness-110"
+      className="absolute inset-x-1 cursor-pointer overflow-hidden bg-[var(--color-terracotta)] px-2 py-1 text-xs text-white shadow-sm transition hover:brightness-110"
       style={{ top, height }}
       title={`${booking.customerName} · ${booking.customerPhone}`}
       onClick={(e) => {

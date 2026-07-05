@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -16,7 +17,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Optima — frizerski salon",
-  description: "Online zakazivanje za salon Optima, Vranje. Uskoro.",
+  description: "Online zakazivanje za salon Optima, Vranje — kosa i nokti.",
 };
 
 export default function RootLayout({
@@ -26,7 +27,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="sr" className={`${fraunces.variable} ${inter.variable}`}>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="flex min-h-dvh flex-col antialiased">
+        <div className="flex flex-1 flex-col">{children}</div>
+        <Footer />
+      </body>
     </html>
   );
 }

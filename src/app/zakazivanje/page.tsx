@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { SiteHeader } from "@/components/SiteHeader";
 import { BookingFlow } from "@/features/booking/BookingFlow";
 import type { Service, StaffMember } from "@/features/booking/types";
 
@@ -34,7 +35,7 @@ export default async function ZakazivanjePage() {
     settingsRes.error
   ) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-16 text-center">
+      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         <div className="max-w-md">
           <h1 className="mb-3 font-[family-name:var(--font-serif)] text-3xl font-semibold">
             Greška pri učitavanju
@@ -60,16 +61,18 @@ export default async function ZakazivanjePage() {
   };
 
   return (
-    <main className="min-h-dvh px-6 py-12">
+    <>
+      <SiteHeader />
+      <main className="px-4 py-10 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
         <header className="mb-8 text-center">
           <Link
-            href="/salon"
+            href="/"
             className="text-sm text-[var(--color-terracotta)] hover:underline"
           >
             ← Tim i usluge
           </Link>
-          <h1 className="mt-3 font-[family-name:var(--font-serif)] text-4xl font-semibold sm:text-5xl">
+          <h1 className="mt-3 font-[family-name:var(--font-serif)] text-3xl font-semibold sm:text-4xl">
             Zakaži termin
           </h1>
           <p className="mt-2 text-[var(--color-charcoal)]/70">
@@ -85,6 +88,7 @@ export default async function ZakazivanjePage() {
           maxHorizonDays={settings.max_horizon_days}
         />
       </div>
-    </main>
+      </main>
+    </>
   );
 }
