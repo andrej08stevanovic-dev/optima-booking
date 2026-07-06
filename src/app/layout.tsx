@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { Footer } from "@/components/Footer";
+import { TopProgressBar } from "@/components/TopProgressBar";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="sr" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="flex min-h-dvh flex-col antialiased">
+        <TopProgressBar />
         <div className="flex flex-1 flex-col">{children}</div>
         <Footer />
       </body>
