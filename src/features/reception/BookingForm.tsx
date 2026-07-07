@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { DatePicker } from "@/components/DatePicker";
 import { TimePicker } from "@/components/TimePicker";
-import type { ReceptionBooking, ReceptionFormData, ReceptionSource } from "./types";
+import type { DayCalendar, ReceptionBooking, ReceptionFormData, ReceptionSource } from "./types";
 import { createReceptionBooking, updateReceptionBooking } from "./write-actions";
+import { getDayCalendar } from "./actions";
 
 const TZ = "Europe/Belgrade";
 
@@ -22,6 +23,7 @@ export type FormMode =
 type Props = {
   formData: ReceptionFormData;
   mode: FormMode;
+  currentDayCalendar: DayCalendar;
   onClose: () => void;
   onSuccess: () => void; // parent refetch
 };
@@ -30,7 +32,7 @@ const inputBase =
   "w-full rounded-xl border border-[var(--color-beige)] bg-white/60 px-4 py-2.5 text-base text-[var(--color-charcoal)] outline-none transition focus:border-[var(--color-terracotta)] focus:ring-[3px] focus:ring-[var(--color-terracotta)]/15";
 const labelBase = "mb-1 block text-sm text-[var(--color-charcoal)]/70";
 
-export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
+export function BookingForm({ formData, mode, currentDayCalendar, onClose, onSuccess }: Props) {
   const isEdit = mode.kind === "edit";
   const editBooking = isEdit ? mode.booking : null;
   const editStart = editBooking ? DateTime.fromISO(editBooking.startUtcISO).setZone(TZ) : null;
@@ -50,6 +52,78 @@ export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
   const [note, setNote] = useState(isEdit ? (mode.booking.note ?? "") : "");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // States for checking available slots
+  const [dayData, setDayData] = useState<DayCalendar | null>(() => {
+    const initialDate = isEdit ? editStart!.toISODate()! : (mode.dateStr ?? "");
+    if (currentDayCalendar && currentDayCalendar.dateStr === initialDate) {
+      return currentDayCalendar;
+    }
+    return null;
+  });
+  const [showAllTimes, setShowAllTimes] = useState(false);
+
+  // Fetch day calendar data if the selected date changes to something else
+  useEffect(() => {
+    if (!dateStr) return;
+    if (currentDayCalendar && currentDayCalendar.dateStr === dateStr) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDayData(currentDayCalendar);
+      return;
+    }
+    let cancelled = false;
+    getDayCalendar(dateStr).then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setDayData(res.data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [dateStr, currentDayCalendar]);
+
+  const selectedService = useMemo(() => {
+    return formData.services.find((s) => s.id === serviceId);
+  }, [serviceId, formData.services]);
+  const duration = selectedService?.duration_minutes ?? 0;
+
+  const busyIntervals = useMemo(() => {
+    if (!dayData || !staffId) return [];
+
+    const bookings = dayData.bookings.filter((b) => {
+      if (isEdit && editBooking && b.id === editBooking.id) return false;
+      return b.staffId === staffId;
+    });
+
+    const timeOff = dayData.timeOff.filter((t) => t.staffId === staffId);
+
+    return [
+      ...bookings.map((b) => ({ startUtcISO: b.startUtcISO, endUtcISO: b.endUtcISO })),
+      ...timeOff.map((t) => ({ startUtcISO: t.startUtcISO, endUtcISO: t.endUtcISO })),
+    ];
+  }, [dayData, staffId, isEdit, editBooking]);
+
+  const isSlotDisabled = (time: string) => {
+    if (showAllTimes) return false;
+    if (!duration) return false;
+
+    const candStart = DateTime.fromISO(`${dateStr}T${time}`, { zone: TZ });
+    if (!candStart.isValid) return false;
+    const candEnd = candStart.plus({ minutes: duration });
+
+    const startMs = candStart.toMillis();
+    const endMs = candEnd.toMillis();
+
+    for (const b of busyIntervals) {
+      const bStart = DateTime.fromISO(b.startUtcISO).toMillis();
+      const bEnd = DateTime.fromISO(b.endUtcISO).toMillis();
+      if (startMs < bEnd && bStart < endMs) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   const isWalkIn = !isEdit && mode.source === "walk_in";
   const title = isEdit ? "Izmeni termin" : isWalkIn ? "Walk-in termin" : "Novi termin";
@@ -188,9 +262,28 @@ export function BookingForm({ formData, mode, onClose, onSuccess }: Props) {
               <label className={labelBase}>
                 Vreme <span className="text-[var(--color-terracotta)]">*</span>
               </label>
-              <TimePicker value={timeStr} onChange={setTimeStr} />
+              <TimePicker
+                value={timeStr}
+                onChange={setTimeStr}
+                isSlotDisabled={isSlotDisabled}
+              />
             </div>
           </div>
+
+          {/* Override checkbox */}
+          {duration > 0 && staffId && (
+            <div className="flex items-center justify-end -mt-1">
+              <label className="flex items-center gap-2 text-xs text-[var(--color-charcoal)]/60 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showAllTimes}
+                  onChange={(e) => setShowAllTimes(e.target.checked)}
+                  className="rounded border-[var(--color-beige)] text-[var(--color-terracotta)] focus:ring-[var(--color-terracotta)]/20"
+                />
+                Prikaži sve slotove (dozvoli preklapanje)
+              </label>
+            </div>
+          )}
 
           <div>
             <label className={labelBase}>

@@ -10,6 +10,7 @@ type Props = {
   endMinutes?: number; // podrazumevano 22:00
   stepMinutes?: number; // podrazumevano 15
   placeholder?: string;
+  isSlotDisabled?: (timeStr: string) => boolean;
 };
 
 function formatMinutes(total: number): string {
@@ -25,6 +26,7 @@ export function TimePicker({
   endMinutes = 22 * 60,
   stepMinutes = 15,
   placeholder = "Izaberi vreme",
+  isSlotDisabled,
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -60,19 +62,23 @@ export function TimePicker({
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-2 max-h-64 w-40 overflow-y-auto rounded-2xl bg-white p-2 shadow-xl ring-1 ring-[var(--color-beige)]">
+        <div className="absolute z-20 mt-2 max-h-64 w-45 overflow-y-auto rounded-2xl bg-white p-2 shadow-xl ring-1 ring-[var(--color-beige)]">
           <div className="grid grid-cols-2 gap-1">
             {options.map((t) => {
               const isSelected = t === value;
+              const isDisabled = isSlotDisabled?.(t) ?? false;
               return (
                 <button
                   key={t}
                   ref={isSelected ? selectedRef : undefined}
                   type="button"
-                  onClick={() => pick(t)}
+                  onClick={() => !isDisabled && pick(t)}
+                  disabled={isDisabled}
                   className={`rounded-full px-2 py-1.5 text-center text-sm tabular-nums transition ${
                     isSelected
                       ? "bg-[var(--color-terracotta)] font-medium text-white"
+                      : isDisabled
+                      ? "text-[var(--color-charcoal)]/30 line-through cursor-not-allowed opacity-50 hover:bg-transparent"
                       : "hover:bg-[var(--color-beige)]"
                   }`}
                 >

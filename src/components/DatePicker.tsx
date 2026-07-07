@@ -47,6 +47,7 @@ export function DatePicker({
   // Portal (ispod) zahteva document.body -> samo posle mount-a na klijentu.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();

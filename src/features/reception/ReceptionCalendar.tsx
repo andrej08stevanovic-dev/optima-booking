@@ -9,6 +9,7 @@ import { getDayCalendar, getReceptionNow } from "./actions";
 import { BookingForm, type FormMode } from "./BookingForm";
 import { BookingDetail } from "./BookingDetail";
 import type { DayCalendar, ReceptionBooking, ReceptionFormData } from "./types";
+import { FreeSlotsHelper } from "./FreeSlotsHelper";
 
 const TZ = "Europe/Belgrade";
 const PX_PER_MINUTE = 1.6;
@@ -54,6 +55,7 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<FormMode | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<ReceptionBooking | null>(null);
+  const [showHelper, setShowHelper] = useState(true);
   const loadedDateRef = useRef(initialData.dateStr);
   const dateStrRef = useRef(initialData.dateStr);
 
@@ -185,6 +187,16 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
     setFormMode({ kind: "create", source: "reception", dateStr });
   }
 
+  function handleSelectSlot(staffId: string, timeStr: string, slotDateStr: string) {
+    setFormMode({
+      kind: "create",
+      source: "reception",
+      staffId,
+      dateStr: slotDateStr,
+      timeStr,
+    });
+  }
+
   async function openWalkIn() {
     // "Sada" dolazi SA SERVERA (izvor istine za beogradsko vreme).
     const res = await getReceptionNow();
@@ -285,6 +297,32 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
           </button>
           <button
             type="button"
+            onClick={() => setShowHelper((h) => !h)}
+            className={`btn-press rounded-xl px-4 py-2.5 font-medium ring-1 transition flex items-center gap-1.5 cursor-pointer text-sm ${
+              showHelper
+                ? "bg-[var(--color-beige)] ring-[var(--color-beige)] text-[var(--color-charcoal)]"
+                : "ring-[var(--color-beige)] hover:bg-[var(--color-beige)] text-[var(--color-charcoal)]/80"
+            }`}
+            title="Prikaži/sakrij pomoćnika za slobodne termine"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-4 h-4 text-[var(--color-terracotta)]"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+              />
+            </svg>
+            Slobodni termini {showHelper ? "✓" : ""}
+          </button>
+          <button
+            type="button"
             onClick={openNew}
             className="btn-press rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90"
             title="Zakaži termin za odabrani datum na kalendaru"
@@ -313,102 +351,114 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
               </p>
             )}
 
-            <div
-              className="overflow-x-auto rounded-xl ring-1 ring-[var(--color-beige)] bg-white/40"
-              style={{ maxWidth: 56 + data.staff.length * 160 }}
-            >
-              <div className="relative flex" style={{ minWidth: 56 + data.staff.length * 160 }}>
-                {/* Vremenska osa. Nevidljivi red iznad MORA da postoji i da bude identičnih
-                    klasa kao naslovni red kolona radnika (ime radnika) — inače osa "isklizne"
-                    naviše za visinu tog reda i sati se ne poklapaju sa linijama u kolonama. */}
-                <div className="shrink-0" style={{ width: 56 }}>
-                  <div
-                    className="invisible border-b-2 px-2 py-2 text-center text-sm font-semibold"
-                    aria-hidden="true"
-                  >
-                    &nbsp;
-                  </div>
-                  <div className="relative" style={{ height: gridHeight }}>
-                    {hourMarks.map((m) => (
-                      <div
-                        key={m}
-                        className="absolute right-2 -translate-y-1/2 tabular-nums text-xs text-[var(--color-charcoal)]/50"
-                        style={{ top: (m - data.gridStartMinutes) * PX_PER_MINUTE + GRID_INSET_PX }}
-                      >
-                        {formatMinutes(m)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Kolone radnika */}
-                {data.staff.map((s, idx) => (
-                  <div key={s.id} className="w-40 shrink-0 border-l border-[var(--color-beige)]">
-                    <div className="border-b-2 border-[var(--color-terracotta)]/70 bg-[var(--color-cream)] px-2 py-2 text-center text-sm font-semibold">
-                      {s.full_name}
-                    </div>
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+              <div
+                className="overflow-x-auto rounded-xl ring-1 ring-[var(--color-beige)] bg-white/40 flex-1 min-w-0"
+                style={{ maxWidth: 56 + data.staff.length * 160 }}
+              >
+                <div className="relative flex" style={{ minWidth: 56 + data.staff.length * 160 }}>
+                  {/* Vremenska osa. Nevidljivi red iznad MORA da postoji i da bude identičnih
+                      klasa kao naslovni red kolona radnika (ime radnika) — inače osa "isklizne"
+                      naviše za visinu tog reda i sati se ne poklapaju sa linijama u kolonama. */}
+                  <div className="shrink-0" style={{ width: 56 }}>
                     <div
-                      ref={idx === 0 ? bodyRef : undefined}
-                      className="relative cursor-pointer"
-                      style={{ height: gridHeight }}
-                      onClick={(e) =>
-                        openAtSlot(
-                          s.id,
-                          e.clientY - e.currentTarget.getBoundingClientRect().top
-                        )
-                      }
-                      title="Klikni za novi termin"
+                      className="invisible border-b-2 px-2 py-2 text-center text-sm font-semibold"
+                      aria-hidden="true"
                     >
+                      &nbsp;
+                    </div>
+                    <div className="relative" style={{ height: gridHeight }}>
                       {hourMarks.map((m) => (
                         <div
                           key={m}
-                          className="absolute left-0 right-0 border-t border-[var(--color-beige)]/40"
+                          className="absolute right-2 -translate-y-1/2 tabular-nums text-xs text-[var(--color-charcoal)]/50"
                           style={{ top: (m - data.gridStartMinutes) * PX_PER_MINUTE + GRID_INSET_PX }}
-                        />
+                        >
+                          {formatMinutes(m)}
+                        </div>
                       ))}
-
-                      {data.timeOff
-                        .filter((t) => t.staffId === s.id)
-                        .map((t) => (
-                          <TimeOffBlock
-                            key={t.id}
-                            timeOff={t}
-                            gridStartMinutes={data.gridStartMinutes}
-                            dateStr={data.dateStr}
-                          />
-                        ))}
-
-                      {data.bookings
-                        .filter((b) => b.staffId === s.id)
-                        .map((b) => (
-                          <BookingBlock
-                            key={b.id}
-                            booking={b}
-                            category={categoryByServiceId.get(b.serviceId) ?? null}
-                            pulse={pulseIds.has(b.id)}
-                            gridStartMinutes={data.gridStartMinutes}
-                            onSelect={() => setSelectedBooking(b)}
-                          />
-                        ))}
                     </div>
                   </div>
-                ))}
 
-                {/* Indikator trenutnog vremena — samo za današnji dan, preko svih kolona */}
-                {showNowLine && (
-                  <div
-                    className="pointer-events-none absolute z-10 flex items-center"
-                    style={{ top: nowLineTop, left: 56, right: 0 }}
-                    aria-hidden="true"
-                  >
-                    <span
-                      className="shrink-0 rounded-full bg-[#ef4444]"
-                      style={{ width: 7, height: 7, marginLeft: -3 }}
-                    />
-                    <span className="flex-1 bg-[#ef4444]" style={{ height: 2 }} />
-                  </div>
-                )}
+                  {/* Kolone radnika */}
+                  {data.staff.map((s, idx) => (
+                    <div key={s.id} className="w-40 shrink-0 border-l border-[var(--color-beige)]">
+                      <div className="border-b-2 border-[var(--color-terracotta)]/70 bg-[var(--color-cream)] px-2 py-2 text-center text-sm font-semibold">
+                        {s.full_name}
+                      </div>
+                      <div
+                        ref={idx === 0 ? bodyRef : undefined}
+                        className="relative cursor-pointer"
+                        style={{ height: gridHeight }}
+                        onClick={(e) =>
+                          openAtSlot(
+                            s.id,
+                            e.clientY - e.currentTarget.getBoundingClientRect().top
+                          )
+                        }
+                        title="Klikni za novi termin"
+                      >
+                        {hourMarks.map((m) => (
+                          <div
+                            key={m}
+                            className="absolute left-0 right-0 border-t border-[var(--color-beige)]/40"
+                            style={{ top: (m - data.gridStartMinutes) * PX_PER_MINUTE + GRID_INSET_PX }}
+                          />
+                        ))}
+
+                        {data.timeOff
+                          .filter((t) => t.staffId === s.id)
+                          .map((t) => (
+                            <TimeOffBlock
+                              key={t.id}
+                              timeOff={t}
+                              gridStartMinutes={data.gridStartMinutes}
+                              dateStr={data.dateStr}
+                            />
+                          ))}
+
+                        {data.bookings
+                          .filter((b) => b.staffId === s.id)
+                          .map((b) => (
+                            <BookingBlock
+                              key={b.id}
+                              booking={b}
+                              category={categoryByServiceId.get(b.serviceId) ?? null}
+                              pulse={pulseIds.has(b.id)}
+                              gridStartMinutes={data.gridStartMinutes}
+                              onSelect={() => setSelectedBooking(b)}
+                            />
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Indikator trenutnog vremena — samo za današnji dan, preko svih kolona */}
+                  {showNowLine && (
+                    <div
+                      className="pointer-events-none absolute z-10 flex items-center"
+                      style={{ top: nowLineTop, left: 56, right: 0 }}
+                      aria-hidden="true"
+                    >
+                      <span
+                        className="shrink-0 rounded-full bg-[#ef4444]"
+                        style={{ width: 7, height: 7, marginLeft: -3 }}
+                      />
+                      <span className="flex-1 bg-[#ef4444]" style={{ height: 2 }} />
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {showHelper && (
+                <div className="w-full lg:w-80 shrink-0">
+                  <FreeSlotsHelper
+                    dayCalendar={data}
+                    formData={formData}
+                    onSelectSlot={handleSelectSlot}
+                  />
+                </div>
+              )}
             </div>
           </>
         )}
@@ -418,6 +468,7 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
         <BookingForm
           formData={formData}
           mode={formMode}
+          currentDayCalendar={data}
           onClose={() => setFormMode(null)}
           onSuccess={reloadCurrent}
         />
