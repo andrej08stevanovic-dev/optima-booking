@@ -279,13 +279,15 @@ export function ReceptionCalendar({ initialData, todayISO, formData }: Props) {
             type="button"
             onClick={openWalkIn}
             className="btn-press rounded-xl px-4 py-2 font-medium ring-1 ring-[var(--color-beige)] hover:bg-[var(--color-beige)]"
+            title="Zakaži termin za mušteriju koja je trenutno u salonu (koristi tačno trenutno vreme)"
           >
-            Walk-in
+            Walk-in (sada)
           </button>
           <button
             type="button"
             onClick={openNew}
             className="btn-press rounded-xl bg-[var(--color-terracotta)] px-6 py-3 font-medium text-white shadow-[var(--shadow-sm)] hover:opacity-90"
+            title="Zakaži termin za odabrani datum na kalendaru"
           >
             + Novi termin
           </button>

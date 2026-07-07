@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { DateTime } from "luxon";
 import { useOutsideClick } from "./useOutsideClick";
 
@@ -42,7 +43,18 @@ export function DatePicker({
   );
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useOutsideClick(wrapperRef, open, () => setOpen(false));
+  const [isMobile, setIsMobile] = useState(false);
+  // Portal (ispod) zahteva document.body -> samo posle mount-a na klijentu.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useOutsideClick(wrapperRef, open && !isMobile, () => setOpen(false));
 
   // Kad se popover otvori, skoči na mesec trenutne vrednosti (ne u efektu —
   // menja se u event handler-u da izbegnemo kaskadni render).
@@ -94,6 +106,74 @@ export function DatePicker({
       ? "inline-flex items-center gap-2 font-[family-name:var(--font-serif)] text-2xl font-semibold capitalize sm:text-3xl text-left transition hover:text-[var(--color-terracotta)]"
       : "w-full rounded-xl border border-[var(--color-beige)] bg-white px-4 py-2.5 text-left text-[var(--color-charcoal)] outline-none transition focus:ring-2 focus:ring-[var(--color-terracotta)]";
 
+  const calendarContent = (
+    <>
+      <div className="mb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setViewMonth((m) => m.minus({ months: 1 }))}
+          className="rounded-lg px-2 py-1 text-[var(--color-charcoal)]/60 transition hover:bg-[var(--color-beige)]"
+          aria-label="Prethodni mesec"
+        >
+          ‹
+        </button>
+        <span className="font-medium capitalize">{monthLabel}</span>
+        <button
+          type="button"
+          onClick={() => setViewMonth((m) => m.plus({ months: 1 }))}
+          className="rounded-lg px-2 py-1 text-[var(--color-charcoal)]/60 transition hover:bg-[var(--color-beige)]"
+          aria-label="Sledeći mesec"
+        >
+          ›
+        </button>
+      </div>
+
+      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs text-[var(--color-charcoal)]/50">
+        {WEEKDAY_LABELS.map((w) => (
+          <span key={w}>{w}</span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((dateStr, i) => {
+          if (!dateStr) return <span key={`blank-${i}`} />;
+          const disabled = isDisabled(dateStr);
+          const isSelected = dateStr === value;
+          const isToday = dateStr === todayISO;
+          const dayNum = DateTime.fromISO(dateStr).day;
+          return (
+            <button
+              key={dateStr}
+              type="button"
+              disabled={disabled}
+              onClick={() => pick(dateStr)}
+              className={`aspect-square rounded-lg text-sm transition ${
+                isSelected
+                  ? "bg-[var(--color-terracotta)] font-medium text-white"
+                  : disabled
+                    ? "text-[var(--color-charcoal)]/25"
+                    : isToday
+                      ? "ring-1 ring-[var(--color-terracotta)] hover:bg-[var(--color-beige)]"
+                      : "hover:bg-[var(--color-beige)]"
+              }`}
+            >
+              {dayNum}
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        onClick={goToday}
+        disabled={isDisabled(todayISO)}
+        className="mt-3 w-full rounded-lg py-1.5 text-center text-sm font-medium text-[var(--color-terracotta)] transition hover:bg-[var(--color-beige)] disabled:opacity-40"
+      >
+        Danas
+      </button>
+    </>
+  );
+
   return (
     <div className="relative" ref={wrapperRef}>
       <button type="button" onClick={toggleOpen} className={triggerClassName}>
@@ -125,71 +205,31 @@ export function DatePicker({
         )}
       </button>
 
-      {open && (
+      {open &&
+        isMobile &&
+        mounted &&
+        createPortal(
+          // Portal u document.body je NAMERAN, ne kozmetika: bilo koji predak sa
+          // CSS transform-om (npr. sekcije sa animate-slide-right/left klasom iz
+          // BookingFlow-a) pravi NOV "containing block" za position:fixed decu —
+          // bez portala bi se backdrop/sheet pozicionirali prema toj sekciji,
+          // ne prema stvarnom viewport-u (otkriveno testiranjem, ne teorijom).
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/40 animate-backdrop"
+              onClick={() => setOpen(false)}
+            />
+            <div className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center rounded-t-2xl bg-white p-4 pb-6 shadow-2xl animate-slide-up">
+              <div className="mb-4 h-1 w-12 rounded-full bg-[var(--color-charcoal)]/10" />
+              <div className="w-full max-w-sm">{calendarContent}</div>
+            </div>
+          </>,
+          document.body
+        )}
+
+      {open && !isMobile && (
         <div className="absolute z-20 mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-[var(--color-beige)]">
-          <div className="mb-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setViewMonth((m) => m.minus({ months: 1 }))}
-              className="rounded-lg px-2 py-1 text-[var(--color-charcoal)]/60 transition hover:bg-[var(--color-beige)]"
-              aria-label="Prethodni mesec"
-            >
-              ‹
-            </button>
-            <span className="font-medium capitalize">{monthLabel}</span>
-            <button
-              type="button"
-              onClick={() => setViewMonth((m) => m.plus({ months: 1 }))}
-              className="rounded-lg px-2 py-1 text-[var(--color-charcoal)]/60 transition hover:bg-[var(--color-beige)]"
-              aria-label="Sledeći mesec"
-            >
-              ›
-            </button>
-          </div>
-
-          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs text-[var(--color-charcoal)]/50">
-            {WEEKDAY_LABELS.map((w) => (
-              <span key={w}>{w}</span>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {cells.map((dateStr, i) => {
-              if (!dateStr) return <span key={`blank-${i}`} />;
-              const disabled = isDisabled(dateStr);
-              const isSelected = dateStr === value;
-              const isToday = dateStr === todayISO;
-              const dayNum = DateTime.fromISO(dateStr).day;
-              return (
-                <button
-                  key={dateStr}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => pick(dateStr)}
-                  className={`aspect-square rounded-lg text-sm transition ${
-                    isSelected
-                      ? "bg-[var(--color-terracotta)] font-medium text-white"
-                      : disabled
-                        ? "text-[var(--color-charcoal)]/25"
-                        : isToday
-                          ? "ring-1 ring-[var(--color-terracotta)] hover:bg-[var(--color-beige)]"
-                          : "hover:bg-[var(--color-beige)]"
-                  }`}
-                >
-                  {dayNum}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={goToday}
-            disabled={isDisabled(todayISO)}
-            className="mt-3 w-full rounded-lg py-1.5 text-center text-sm font-medium text-[var(--color-terracotta)] transition hover:bg-[var(--color-beige)] disabled:opacity-40"
-          >
-            Danas
-          </button>
+          {calendarContent}
         </div>
       )}
     </div>

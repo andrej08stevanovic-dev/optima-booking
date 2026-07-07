@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { DatePicker } from "@/components/DatePicker";
@@ -79,6 +79,7 @@ export function BookingFlow({
   const [takenMsg, setTakenMsg] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  const customerSectionRef = useRef<HTMLElement>(null);
 
   // Granice date inputa u beogradskoj zoni (UX; server svejedno reproverava).
   const todayISO = useMemo(
@@ -212,6 +213,9 @@ export function BookingFlow({
     setSelectedSlot(null);
     setAssignment(null);
     setTakenMsg(null);
+    setLoaded(false);
+    setSlots([]);
+    setAnySlots([]);
   }
 
   // Izbor vremena — konkretan radnik.
@@ -222,6 +226,9 @@ export function BookingFlow({
       staffId: staffId!,
       staffName: concreteStaffName,
     });
+    setTimeout(() => {
+      customerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   }
 
   // Izbor vremena — "bilo ko". Sistem NIKAD ne pita kod koga; dodela ide
@@ -229,6 +236,9 @@ export function BookingFlow({
   function pickAnyTime(m: MergedSlot) {
     setSelectedSlot({ startUtcISO: m.startUtcISO, label: m.label });
     setAssignment({ origin: "any" });
+    setTimeout(() => {
+      customerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   }
 
   function goToReview() {
@@ -604,12 +614,19 @@ export function BookingFlow({
               ))}
             </div>
           )}
+
+          {selectedSlot && (
+            <div className="mt-4 flex items-center justify-center gap-1.5 text-sm font-medium text-[var(--color-terracotta)] animate-pulse">
+              <span>Izabran termin u {selectedSlot.label}. Popunite podatke ispod</span>
+              <span className="text-base">↓</span>
+            </div>
+          )}
         </section>
       )}
 
       {/* PODACI MUŠTERIJE — kad je termin + dodela razrešena */}
       {selectedSlot && assignment && service && (
-        <section className="animate-slide-right">
+        <section ref={customerSectionRef} className="animate-slide-right">
           <StepTitle title="Tvoji podaci" />
           <div className="flex flex-col gap-3">
             <div>
