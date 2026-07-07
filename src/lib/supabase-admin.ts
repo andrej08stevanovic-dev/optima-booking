@@ -7,14 +7,8 @@ import { createClient } from "@supabase/supabase-js";
 // NIKAD se ne uvozi u client komponentu — `server-only` gore to fizički osigurava.
 // Ključ NEMA NEXT_PUBLIC_ prefiks => nikad ne ide u browser bundle.
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error(
-    "Nedostaju Supabase env varijable: postavi NEXT_PUBLIC_SUPABASE_URL i SUPABASE_SERVICE_ROLE_KEY u .env.local (i u Vercel za deploy)."
-  );
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder";
 
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
